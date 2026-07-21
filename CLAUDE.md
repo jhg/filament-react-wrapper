@@ -50,13 +50,14 @@ npm run dev
 node scripts/build.js --target=all --verbose --skip-tests
 ```
 
-### vite-plugin-filament-react Integration
-This package now uses `vite-plugin-filament-react` for enhanced development experience:
+### Vite Integration
+The package uses the application's regular Laravel/Vite setup. The Composer
+service provider publishes the JavaScript source and bootstrap entry point;
+there is no companion Vite plugin.
 
-- **Auto-discovery**: Components automatically discovered and registered
-- **PHP Registry**: Generates PHP component registry in `dist/php/ComponentRegistry.php`
-- **Dev Tools**: Component inspector, state debugger, and performance monitor
-- **Dual Build**: NPM + Laravel asset generation
+- **Auto-discovery**: Components are discovered by the PHP integration when enabled
+- **PHP Registry**: Server-side component registry remains available
+- **Dual Build**: NPM and Laravel asset targets remain available
 
 ### Development Tools
 ```bash
@@ -84,7 +85,7 @@ npm run analyze        # Analyze bundle size and dependencies
 ### PHP/Laravel Commands
 ```bash
 # Publish package assets
-php artisan vendor:publish --provider="HadyFayed\ReactWrapper\ReactWrapperServiceProvider"
+php artisan vendor:publish --tag=react-wrapper
 
 # Integration reports
 php artisan react-wrapper:integration-report

@@ -7,13 +7,18 @@ on:
     branches: [ main, develop ]
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
 
 jobs:
-  # Frontend Tests & Build
+  # Node is intentionally tested independently from PHP. It is the asset
+  # toolchain, not a framework-version constraint.
   frontend:
-    name: Frontend Tests & Build
+    name: Frontend (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['20', '22', '24']
     
     steps:
       - name: Checkout code
@@ -22,7 +27,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
       - name: Install dependencies
@@ -32,13 +37,13 @@ jobs:
         run: npm run typecheck
 
       - name: Run ESLint
-        run: npm run lint
+        run: npm run lint:check
 
       - name: Build package
         run: npm run build
 
-      - name: Run tests (allow failures for now)
-        run: npm run test || true
+      - name: Run tests
+        run: npm run test
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -47,11 +52,79 @@ jobs:
           path: dist/
           retention-days: 7
 
-  # PHP Basic Check (minimal)
-  php-check:
-    name: PHP Syntax Check
+  # Explicitly supported framework combinations. A Cartesian product would
+  # include invalid combinations such as Filament 5 with Livewire 3.
+  backend:
+    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel_name }} / Filament ${{ matrix.filament_name }} / Livewire ${{ matrix.livewire_name }}
     runs-on: ubuntu-latest
-    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            laravel: '^11.50'
+            laravel_name: '11'
+            filament: '^3.0'
+            filament_name: '3'
+            livewire: '^3.0'
+            livewire_name: '3'
+            testbench: '^9.0'
+            phpunit: '^10.0'
+          - php: '8.3'
+            laravel: '^12.0'
+            laravel_name: '12'
+            filament: '^3.0'
+            filament_name: '3'
+            livewire: '^3.0'
+            livewire_name: '3'
+            testbench: '^10.0'
+            phpunit: '^10.0'
+          - php: '8.2'
+            laravel: '^11.50'
+            laravel_name: '11'
+            filament: '^4.0'
+            filament_name: '4'
+            livewire: '^3.0'
+            livewire_name: '3'
+            testbench: '^9.0'
+            phpunit: '^10.0'
+          - php: '8.3'
+            laravel: '^12.0'
+            laravel_name: '12'
+            filament: '^4.0'
+            filament_name: '4'
+            livewire: '^3.0'
+            livewire_name: '3'
+            testbench: '^10.0'
+            phpunit: '^10.0'
+          - php: '8.2'
+            laravel: '^11.50'
+            laravel_name: '11'
+            filament: '^5.0'
+            filament_name: '5'
+            livewire: '^4.0'
+            livewire_name: '4'
+            testbench: '^9.0'
+            phpunit: '^10.0'
+          - php: '8.3'
+            laravel: '^12.0'
+            laravel_name: '12'
+            filament: '^5.0'
+            filament_name: '5'
+            livewire: '^4.0'
+            livewire_name: '4'
+            testbench: '^10.0'
+            phpunit: '^10.0'
+          - php: '8.3'
+            laravel: '^13.1'
+            laravel_name: '13'
+            filament: '^5.0'
+            filament_name: '5'
+            livewire: '^4.0'
+            livewire_name: '4'
+            testbench: '^11.0'
+            phpunit: '^12.0'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -59,10 +132,20 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: ${{ matrix.php }}
 
-      - name: Check PHP syntax
-        run: find src/ -name "*.php" -exec php -l {} \;
+      - name: Resolve framework combination
+        run: >-
+          composer update
+          "laravel/framework:${{ matrix.laravel }}"
+          "filament/filament:${{ matrix.filament }}"
+          "livewire/livewire:${{ matrix.livewire }}"
+          "orchestra/testbench:${{ matrix.testbench }}"
+          "phpunit/phpunit:${{ matrix.phpunit }}"
+          --with-all-dependencies --prefer-dist --no-interaction --no-progress
+
+      - name: Run PHP tests
+        run: vendor/bin/phpunit -c phpunit.xml.dist
 
   # Security Check
   security:

@@ -62,8 +62,8 @@ class ComponentCommand extends Command
         $lazyDecorator = $lazy ? 'lazy: true, ' : '';
         $componentTemplate = <<<TSX
 import React from 'react';
-import { Component } from '@hadyfayed/filament-react-wrapper';
-import { useFilamentState, useFilamentBridge } from '@hadyfayed/filament-react-wrapper';
+import { Component } from '@react-wrapper';
+import { useFilamentState, useFilamentBridge } from '@react-wrapper';
 
 interface {$name}Props {
     title?: string;
@@ -134,7 +134,7 @@ class {$name}Widget extends ReactWidget
 {
     protected string \$componentName = '{$name}';
 
-    protected static string \$view = 'filament.widgets.react-widget';
+    protected static string \$view = 'react-wrapper::filament.widgets.react-widget';
 
     public function getData(): array
     {

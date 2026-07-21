@@ -4,16 +4,14 @@
 
 ### 🎯 Major Improvements
 
-#### 🔗 Enhanced vite-plugin-filament-react Integration
-- **Seamless Plugin Support**: Full compatibility with `vite-plugin-filament-react@^1.0.0`
-- **Auto-Discovery**: Components automatically discovered and registered when plugin is used
-- **Enhanced Dev Tools**: Component inspector, state debugger, and performance monitor
-- **Optimized Builds**: Automatic code splitting and performance optimization
-- **PHP Registry Generation**: Server-side component registry for improved integration
+#### 🔗 Simplified Vite Integration
+- The package now uses the application's regular Laravel/Vite setup.
+- No companion Vite plugin is required.
+- Component registration, code splitting, and PHP registry support remain available through the package itself.
 
 #### 📚 Documentation Overhaul
-- **Updated README**: Enhanced with plugin integration examples and recommendations
-- **Installation Guide**: Comprehensive guide with both basic and enhanced configurations
+- **Updated README**: Standard Laravel/Vite integration examples
+- **Installation Guide**: Composer-published assets and standard Vite configuration
 - **Best Practice Examples**: Real-world usage patterns and configuration options
 
 ### 🔧 Technical Improvements
@@ -33,8 +31,7 @@
 ### 🆕 New Features
 
 #### Developer Experience
-- **Plugin Integration Guide**: Step-by-step instructions for enhanced setup
-- **Configuration Examples**: Both basic and advanced Vite configurations
+- **Configuration Examples**: Standard Vite configuration
 - **Pro Tips**: Inline documentation with best practice recommendations
 
 #### Enhanced Compatibility
@@ -77,9 +74,7 @@
 ### 🎨 Enhanced Documentation
 
 #### README Improvements
-```markdown
-💡 Pro Tip: Use with vite-plugin-filament-react for enhanced DX
-```
+- Installation instructions now use the Composer-published bootstrap and standard Laravel Vite configuration.
 
 #### Installation Guide Updates
 - **Plugin Benefits**: Clear explanation of enhanced features
@@ -88,9 +83,8 @@
 
 ### 🔗 Integration Benefits
 
-#### With vite-plugin-filament-react
-- **Auto-Discovery**: No manual component registration needed
-- **Dev Tools**: Visual debugging and inspection tools
+#### Integration Benefits
+- **Auto-Discovery**: No manual component registration needed when enabled in configuration
 - **Performance**: Automatic optimization and lazy loading
 - **PHP Bridge**: Server-side component registry generation
 
@@ -111,24 +105,11 @@ npm update @hadyfayed/filament-react-wrapper
 composer update hadyfayed/filament-react-wrapper
 ```
 
-**Enhanced Setup (Recommended):**
+**JavaScript setup:**
 ```bash
-# Install the companion plugin
-npm install --save-dev vite-plugin-filament-react
-
-# Update vite.config.js
-import filamentReact from 'vite-plugin-filament-react';
-
-export default defineConfig({
-    plugins: [
-        laravel({ /* ... */ }),
-        react(),
-        filamentReact({
-            discovery: { packagePaths: ['resources/js'] },
-            devTools: { componentInspector: true }
-        }),
-    ],
-});
+php artisan vendor:publish --tag=react-wrapper
+npm install
+npm run build
 ```
 
 ### 🎯 What's Next
@@ -170,6 +151,5 @@ This release focuses on enhanced developer experience and better integration wit
 **Full Changelog**: https://github.com/hadyfayed/filament-react-wrapper/compare/v3.1.1...v3.2.0
 
 **Package Links**:
-- NPM: https://www.npmjs.com/package/@hadyfayed/filament-react-wrapper
 - Packagist: https://packagist.org/packages/hadyfayed/filament-react-wrapper
 - GitHub: https://github.com/hadyfayed/filament-react-wrapper

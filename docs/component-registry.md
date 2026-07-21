@@ -27,7 +27,7 @@ The Component Registry is a service that:
 ### Basic Registration
 
 ```typescript
-import { componentRegistry } from '@hadyfayed/filament-react-wrapper';
+import { componentRegistry } from '@react-wrapper';
 import MyComponent from './components/MyComponent';
 
 componentRegistry.register({
@@ -75,7 +75,7 @@ componentRegistry.register({
 ### Bulk Registration
 
 ```typescript
-import { registerComponents } from '@hadyfayed/filament-react-wrapper';
+import { registerComponents } from '@react-wrapper';
 
 const components = [
   {

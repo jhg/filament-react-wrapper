@@ -27,7 +27,7 @@ The state management system provides:
 ### Basic Usage
 
 ```typescript
-import { globalStateManager } from '@hadyfayed/filament-react-wrapper';
+import { globalStateManager } from '@react-wrapper';
 
 // Set state
 globalStateManager.setState('user.name', 'John Doe');
@@ -78,7 +78,7 @@ Access the global state manager in any component:
 
 ```typescript
 import React from 'react';
-import { useStateManager } from '@hadyfayed/filament-react-wrapper';
+import { useStateManager } from '@react-wrapper';
 
 const UserProfile: React.FC = () => {
   const { state, setState, getState, updateState } = useStateManager();
@@ -112,7 +112,7 @@ Direct access to specific state paths with automatic re-rendering:
 
 ```typescript
 import React from 'react';
-import { useStatePath } from '@hadyfayed/filament-react-wrapper';
+import { useStatePath } from '@react-wrapper';
 
 const UserSettings: React.FC = () => {
   // Typed state path with default value
@@ -162,7 +162,7 @@ State that automatically persists to storage:
 
 ```typescript
 import React from 'react';
-import { usePersistedState } from '@hadyfayed/filament-react-wrapper';
+import { usePersistedState } from '@react-wrapper';
 
 interface UserPreferences {
   theme: 'light' | 'dark';
@@ -442,7 +442,7 @@ const ChatComponent: React.FC = () => {
 
 ```typescript
 import React from 'react';
-import { StateManagerProvider } from '@hadyfayed/filament-react-wrapper';
+import { StateManagerProvider } from '@react-wrapper';
 
 const App: React.FC = () => {
   return (
@@ -477,7 +477,7 @@ const App: React.FC = () => {
 ### HOC Pattern
 
 ```typescript
-import { withStateManager } from '@hadyfayed/filament-react-wrapper';
+import { withStateManager } from '@react-wrapper';
 
 interface Props {
   title: string;
@@ -597,7 +597,7 @@ const DataComponent: React.FC = () => {
 
 ```typescript
 // Enable state debugging
-import { devTools } from '@hadyfayed/filament-react-wrapper';
+import { devTools } from '@react-wrapper';
 
 // Track all state changes
 devTools.subscribe((event) => {

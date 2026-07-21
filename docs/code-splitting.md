@@ -22,7 +22,7 @@ Code splitting is the process of splitting your code into smaller chunks that ca
 ### Basic Lazy Loading
 
 ```typescript
-import { componentRegistry } from '@hadyfayed/filament-react-wrapper';
+import { componentRegistry } from '@react-wrapper';
 
 // Register component with lazy loading
 componentRegistry.register({
@@ -65,7 +65,7 @@ componentRegistry.register({
 Split code by application routes:
 
 ```typescript
-import { codeSplittingService } from '@hadyfayed/filament-react-wrapper';
+import { codeSplittingService } from '@react-wrapper';
 
 // Register route-based strategy
 codeSplittingService.registerStrategy({

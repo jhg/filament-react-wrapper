@@ -3,7 +3,7 @@
     $componentProps = $getComponentProps();
     $containerId = $getContainerId();
     $height = $getHeight();
-    $isLazy = $lazy ?? true;
+    $isLazy = $componentProps['lazy'] ?? true;
 @endphp
 
 <x-dynamic-component :component="$getFieldWrapperView()" :field="$field">

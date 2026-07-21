@@ -4,30 +4,16 @@ namespace HadyFayed\ReactWrapper\Widgets;
 
 use Filament\Widgets\Widget;
 use HadyFayed\ReactWrapper\Components\BaseReactComponent;
-use Illuminate\Support\Str;
 use Livewire\Attributes\On;
-use Livewire\Attributes\Reactive;
 
 class ReactWidget extends Widget
 {
-    public function render(): \Illuminate\Support\HtmlString
+    public function render(): \Illuminate\Contracts\View\View
     {
-        $viewData = $this->getViewData();
-        return new \Illuminate\Support\HtmlString($this->generateWidgetHTML($viewData));
-    }
-
-    protected function generateWidgetHTML(array $viewData): string
-    {
-        $script = $viewData['script'];
-        $containerId = $viewData['containerId'];
-        $height = $viewData['height'];
-
-        return "
-            <div id=\"{$containerId}\" style=\"height: {$height}px; width: 100%;\"></div>
-            <script>
-                {$script}
-            </script>
-        ";
+        // Filament 3 used a static $view property while Filament 4/5 inherit
+        // a non-static view property from Livewire. Resolving the view here
+        // keeps the package compatible with both contracts.
+        return view('react-wrapper::filament.widgets.react-widget', $this->getViewData());
     }
 
     protected int | string | array $columnSpan = 'full';
@@ -37,7 +23,6 @@ class ReactWidget extends Widget
     protected static bool $isLazy = false;
 
     protected BaseReactComponent $reactComponent;
-    protected array|string|int $columnSpan = 'full';
     protected bool $polling = false;
     protected int|string $pollingInterval = '5s';
     protected array $filters = [];
@@ -45,8 +30,6 @@ class ReactWidget extends Widget
 
     public function __construct()
     {
-        parent::__construct();
-        
         $this->reactComponent = new class extends BaseReactComponent {
             protected function getContainerPrefix(): string { return 'react-widget'; }
             protected function getComponentType(): string { return 'widget'; }
@@ -154,6 +137,8 @@ class ReactWidget extends Widget
             'containerId' => $this->getContainerId(),
             'height' => $this->getHeight(),
             'assetData' => $this->getAssetData(),
+            'lazy' => $this->reactComponent->getComponentProps()['lazy'] ?? static::isLazy(),
+            'reactive' => $this->reactComponent->getComponentProps()['reactive'] ?? true,
             'script' => $this->generateWidgetScript(),
         ]);
     }
@@ -196,12 +181,11 @@ class ReactWidget extends Widget
         // Emit update to frontend
         $this->dispatch('widget-refreshed', [
             'widgetId' => $this->getId(),
-            'containerId' => $this->containerId,
+            'containerId' => $this->getContainerId(),
             'data' => $this->getData(),
         ]);
     }
 
-    #[Reactive]
     public function updated($property): void
     {
         $this->shareWidgetData();

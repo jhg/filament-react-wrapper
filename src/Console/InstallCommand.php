@@ -163,8 +163,8 @@ JS;
         // Simple Counter component
         $counterComponent = <<<'TSX'
 import React from 'react';
-import { Component } from '@hadyfayed/filament-react-wrapper';
-import { useFilamentState } from '@hadyfayed/filament-react-wrapper';
+import { Component } from '@react-wrapper';
+import { useFilamentState } from '@react-wrapper';
 
 interface CounterProps {
     initialCount?: number;
@@ -210,8 +210,8 @@ TSX;
         // User Card component
         $userCardComponent = <<<'TSX'
 import React from 'react';
-import { Component } from '@hadyfayed/filament-react-wrapper';
-import { useFilamentBridge } from '@hadyfayed/filament-react-wrapper';
+import { Component } from '@react-wrapper';
+import { useFilamentBridge } from '@react-wrapper';
 
 interface User {
     id: number;

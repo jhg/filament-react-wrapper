@@ -5,10 +5,11 @@ This guide will walk you through installing and setting up React Wrapper in your
 ## 📋 Requirements
 
 ### System Requirements
-- **Node.js**: 16.0+ (18.0+ recommended)
-- **PHP**: 8.1+ (8.2+ recommended)
-- **Laravel**: 10.0+ or 11.0+
-- **Filament**: 3.0+ (optional but recommended)
+- **Node.js**: 20.0+ (required by the Vite 7 toolchain)
+- **PHP**: 8.2+ (8.3+ for Laravel 13)
+- **Laravel**: 11.x, 12.x, or 13.x
+- **Filament**: 3.x, 4.x, or 5.x
+- **Livewire**: 3.x or 4.x
 
 ### Browser Support
 - Chrome 90+
@@ -18,26 +19,19 @@ This guide will walk you through installing and setting up React Wrapper in your
 
 ## 📦 Package Installation
 
-### 1. Install Core Packages
+### 1. Install the PHP package
 
 ```bash
-# Required packages
-npm install @hadyfayed/filament-react-wrapper
 composer require hadyfayed/filament-react-wrapper
 ```
 
-### 2. Enhanced Developer Experience (Recommended)
+### 2. Publish package assets
 
 ```bash
-# Install the Vite plugin for auto-discovery and dev tools
-npm install --save-dev vite-plugin-filament-react
+php artisan vendor:publish --tag=react-wrapper
 ```
 
-💡 **Why use the plugin?** The [`vite-plugin-filament-react`](https://github.com/hadyfayed/vite-plugin-filament-react) provides:
-- 🔍 **Auto-discovery** of React components
-- 🛠️ **Dev tools** (component inspector, state debugger)
-- ⚡ **Performance optimization** and code splitting
-- 🐘 **PHP registry generation** for server-side integration
+This publishes the JavaScript source under `resources/js/react-wrapper/`, the bootstrap file, the configuration, and the Blade view overrides.
 
 ## 🔧 Laravel Setup
 
@@ -54,13 +48,6 @@ This publishes:
 
 ### 2. Add to Your JavaScript Build
 
-#### Option A: Direct Import (Recommended)
-```javascript
-// resources/js/app.js or resources/js/bootstrap.js
-import '@hadyfayed/filament-react-wrapper';
-```
-
-#### Option B: Use Published Bootstrap File
 ```javascript
 // resources/js/app.js
 import './bootstrap-react';
@@ -70,45 +57,11 @@ import './bootstrap-react';
 
 Update your `vite.config.js`:
 
-#### Option A: With vite-plugin-filament-react (Recommended)
-
 ```javascript
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import react from '@vitejs/plugin-react';
-import filamentReact from 'vite-plugin-filament-react';
-
-export default defineConfig({
-    plugins: [
-        laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
-            refresh: true,
-        }),
-        react(),
-        filamentReact({
-            discovery: {
-                packagePaths: ['resources/js'],
-                composer: {
-                    enabled: true,
-                    includePackages: ['*filament*', '*react*'],
-                }
-            },
-            devTools: {
-                componentInspector: true,
-                stateDebugger: true,
-                performanceMonitor: true,
-            }
-        }),
-    ],
-});
-```
-
-#### Option B: Basic Configuration
-
-```javascript
-import { defineConfig } from 'vite';
-import laravel from 'laravel-vite-plugin';
-import react from '@vitejs/plugin-react';
+import { resolve } from 'node:path';
 
 export default defineConfig({
     plugins: [
@@ -120,7 +73,8 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            '@': 'resources/js',
+            '@': resolve(__dirname, 'resources/js'),
+            '@react-wrapper': resolve(__dirname, 'resources/js/react-wrapper'),
         },
     },
 });
@@ -144,22 +98,9 @@ npm run build
 
 ## 🎨 Filament Integration
 
-### 1. Register the Plugin
+### 1. No panel plugin is required
 
-Add to your Filament panel provider:
-
-```php
-// app/Providers/Filament/AdminPanelProvider.php
-use HadyFayed\ReactWrapper\FilamentReactWrapperPlugin;
-
-public function panel(Panel $panel): Panel
-{
-    return $panel
-        ->plugins([
-            FilamentReactWrapperPlugin::make(),
-        ]);
-}
-```
+The package integrates directly with Filament and its service provider is discovered automatically by Laravel.
 
 ### 2. Alternative: Manual Registration
 
@@ -279,7 +220,7 @@ export default TestComponent;
 
 ```javascript
 // resources/js/app.js
-import '@hadyfayed/filament-react-wrapper';
+import '@react-wrapper';
 import TestComponent from './components/TestComponent';
 
 // Register the component

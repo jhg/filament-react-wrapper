@@ -34,7 +34,7 @@ REACT_WRAPPER_DEBUG=true
 
 ```typescript
 // Or programmatically
-import { devTools } from '@hadyfayed/filament-react-wrapper';
+import { devTools } from '@react-wrapper';
 
 devTools.enable();
 ```

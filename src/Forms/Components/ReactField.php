@@ -4,57 +4,12 @@ namespace HadyFayed\ReactWrapper\Forms\Components;
 
 use Filament\Forms\Components\Field;
 use HadyFayed\ReactWrapper\Components\BaseReactComponent;
-use Illuminate\Support\Str;
 
 class ReactField extends Field
 {
-    public function render(): \Illuminate\Contracts\View\View
-    {
-        $html = $this->generateFieldHTML();
-        
-        // Create a simple view that returns the HTML directly
-        return new class($html) implements \Illuminate\Contracts\View\View {
-            private string $html;
-            
-            public function __construct(string $html) {
-                $this->html = $html;
-            }
-            
-            public function render(): string {
-                return $this->html;
-            }
-            
-            public function with($key, $value = null) {
-                return $this;
-            }
-            
-            public function __toString(): string {
-                return $this->html;
-            }
-            
-            public function name() {
-                return 'react-field-view';
-            }
-            
-            public function getData() {
-                return [];
-            }
-        };
-    }
+    protected string $view = 'react-wrapper::filament.fields.react-field';
 
-    protected function generateFieldHTML(): string
-    {
-        $script = $this->generateFieldScript();
-
-        return "
-            <div id=\"{$this->containerId}\" style=\"height: {$this->height}px; width: 100%;\"></div>
-            <script>
-                {$script}
-            </script>
-        ";
-    }
-
-    public static function make(string $name): static
+    public static function make(?string $name = null): static
     {
         $static = parent::make($name);
         return $static;

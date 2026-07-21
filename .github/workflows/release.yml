@@ -17,8 +17,8 @@ on:
         default: false
 
 env:
-  NODE_VERSION: '18'
-  PHP_VERSION: '8.2'
+  NODE_VERSION: '20'
+  PHP_VERSION: '8.3'
 
 jobs:
   # Validate release
@@ -84,7 +84,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
@@ -94,13 +94,13 @@ jobs:
         run: npm run typecheck
 
       - name: Run ESLint
-        run: npm run lint
+        run: npm run lint:check
 
       - name: Build package
         run: npm run build --skip-tests
 
       - name: Run tests
-        run: npm run test || true
+        run: npm run test
 
   # Build release artifacts
   build:
@@ -378,7 +378,7 @@ jobs:
           text: |
             🚀 React Wrapper v${{ needs.validate.outputs.version }} has been released!
             
-            📦 NPM: https://www.npmjs.com/package/@hadyfayed/react-wrapper
+            📦 NPM: https://www.npmjs.com/package/@hadyfayed/filament-react-wrapper
             🐙 GitHub: ${{ needs.github-release.outputs.release-url }}
             📚 Storybook: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/storybook
             

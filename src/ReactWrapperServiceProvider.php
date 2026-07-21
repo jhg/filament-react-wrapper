@@ -45,6 +45,10 @@ class ReactWrapperServiceProvider extends ServiceProvider
 
     public function boot()
     {
+        // Register package views for Filament widgets and fields. Laravel will
+        // prefer the published override in resources/views/vendor/react-wrapper.
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'react-wrapper');
+
         // Publish configuration and assets
         $this->publishAssets();
 
@@ -159,6 +163,11 @@ class ReactWrapperServiceProvider extends ServiceProvider
             __DIR__.'/../resources/js' => resource_path('js/react-wrapper'),
         ], 'react-wrapper-assets');
 
+        // Publish Blade views for applications that need to customize markup.
+        $this->publishes([
+            __DIR__.'/../resources/views' => resource_path('views/vendor/react-wrapper'),
+        ], 'react-wrapper-views');
+
         // Publish main file for Vite integration
         $this->publishes([
             __DIR__.'/../resources/js/index.tsx' => resource_path('js/bootstrap-react.tsx'),
@@ -175,6 +184,7 @@ class ReactWrapperServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../resources/js' => resource_path('js/react-wrapper'),
             __DIR__.'/../resources/js/index.tsx' => resource_path('js/bootstrap-react.tsx'),
+            __DIR__.'/../resources/views' => resource_path('views/vendor/react-wrapper'),
         ], 'react-wrapper');
     }
 

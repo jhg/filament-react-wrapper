@@ -2,7 +2,6 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import dts from 'vite-plugin-dts';
-import filamentReact from '../vite-plugin-filament-react';
 
 // Standalone Vite config for React Wrapper package
 export default defineConfig({
@@ -18,29 +17,6 @@ export default defineConfig({
             outputDir: 'dist/react-wrapper/types',
             tsConfigFilePath: 'tsconfig.json'
         }),
-        
-        // Filament React plugin for auto-discovery and integration
-        filamentReact({
-            discovery: {
-                packagePaths: ['resources/js'],
-                composer: {
-                    enabled: false // Disable for individual package builds
-                }
-            },
-            php: {
-                generateRegistry: true,
-                registryPath: 'dist/react-wrapper/php/ComponentRegistry.php',
-                namespace: 'HadyFayed\\ReactWrapper\\Generated'
-            },
-            devTools: {
-                componentInspector: true,
-                stateDebugger: true,
-                performanceMonitor: true
-            },
-            dualBuild: {
-                enabled: true
-            }
-        })
     ],
     build: {
         lib: {

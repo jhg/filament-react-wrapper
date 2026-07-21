@@ -25,7 +25,11 @@ abstract class BaseReactComponent
     
     public function initialize(): void
     {
-        $this->registerComponent();
+        // Filament fields and widgets assign their component name after this
+        // helper is constructed, so do not register an empty component.
+        if ($this->componentName !== '') {
+            $this->registerComponent();
+        }
     }
 
     /**
@@ -47,6 +51,11 @@ abstract class BaseReactComponent
     public function component(string $componentName): static
     {
         $this->componentName = $componentName;
+
+        if ($componentName !== '') {
+            $this->registerComponent();
+        }
+
         return $this;
     }
 
@@ -140,7 +149,7 @@ abstract class BaseReactComponent
         }
     }
 
-    protected function shareComponentData($data = null): void
+    public function shareComponentData($data = null): void
     {
         $componentData = [
             'height' => $this->height,

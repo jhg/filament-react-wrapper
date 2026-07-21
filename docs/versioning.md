@@ -27,7 +27,7 @@ Component versioning allows you to:
 ### Basic Versioning
 
 ```typescript
-import { componentVersioningService } from '@hadyfayed/filament-react-wrapper';
+import { componentVersioningService } from '@react-wrapper';
 
 // Register version 1.0.0
 componentVersioningService.registerVersion(

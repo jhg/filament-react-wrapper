@@ -1,10 +1,9 @@
 # React Wrapper for Laravel/Filament
 
-[![npm version](https://badge.fury.io/js/@hadyfayed/filament-react-wrapper.svg)](https://badge.fury.io/js/@hadyfayed/filament-react-wrapper)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
-[![Laravel](https://img.shields.io/badge/Laravel-10.0+-red.svg)](https://laravel.com)
-[![Filament](https://img.shields.io/badge/Filament-3.0+-orange.svg)](https://filamentphp.com)
+[![Laravel](https://img.shields.io/badge/Laravel-11--13-red.svg)](https://laravel.com)
+[![Filament](https://img.shields.io/badge/Filament-3--5-orange.svg)](https://filamentphp.com)
 
 A comprehensive React integration system for Laravel and Filament applications, providing seamless component registration, state management, and real-time synchronization with built-in memory leak prevention and infinite loop protection.
 
@@ -27,33 +26,35 @@ A comprehensive React integration system for Laravel and Filament applications, 
 ### Quick Start
 
 ```bash
-# Install packages
-npm install @hadyfayed/filament-react-wrapper
+# Install the PHP package
 composer require hadyfayed/filament-react-wrapper
-
-# Enhanced DX (recommended)
-npm install --save-dev vite-plugin-filament-react
 ```
 
-💡 **Pro Tip**: Use with [`vite-plugin-filament-react`](https://github.com/hadyfayed/vite-plugin-filament-react) for enhanced developer experience with auto-discovery, dev tools, and performance optimization.
+Publish the package assets, bootstrap file, and Blade views with:
+
+```bash
+php artisan vendor:publish --tag=react-wrapper
+```
+
+The package does not require an npm wrapper or a companion Vite plugin. The application only needs its regular React/Vite dependencies.
 
 ### Laravel Setup
 
-1. **Add to your JavaScript entry:**
+1. **Add the published bootstrap to your JavaScript entry:**
 
 ```javascript
 // resources/js/app.js
-import '@hadyfayed/filament-react-wrapper';
+import './bootstrap-react';
 ```
 
-2. **Update Vite config (with plugin):**
+2. **Configure Vite with the Composer-published source:**
 
 ```javascript
 // vite.config.js
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import react from '@vitejs/plugin-react';
-import filamentReact from 'vite-plugin-filament-react';
+import { resolve } from 'node:path';
 
 export default defineConfig({
     plugins: [
@@ -62,33 +63,16 @@ export default defineConfig({
             refresh: true,
         }),
         react(),
-        filamentReact(), // Auto-discovery and dev tools
     ],
+    resolve: {
+        alias: {
+            '@react-wrapper': resolve(__dirname, 'resources/js/react-wrapper'),
+        },
+    },
 });
 ```
 
-3. **Optional: Register the Filament plugin:**
-
-```php
-// app/Providers/Filament/AdminPanelProvider.php
-use HadyFayed\ReactWrapper\FilamentReactWrapperPlugin;
-
-public function panel(Panel $panel): Panel
-{
-    return $panel
-        ->plugins([
-            FilamentReactWrapperPlugin::make(),
-        ]);
-}
-```
-
-3. **Add to your `app.js`:**
-
-```javascript
-import '@hadyfayed/filament-react-wrapper';
-```
-
-4. **Build your assets:**
+3. **Build your assets:**
 
 ```bash
 npm run build
@@ -99,7 +83,7 @@ npm run build
 ### 1. Register a React Component
 
 ```typescript
-import { componentRegistry } from '@hadyfayed/filament-react-wrapper';
+import { componentRegistry } from '@react-wrapper';
 import MyComponent from './components/MyComponent';
 
 // Simple registration
@@ -158,7 +142,7 @@ class EditUser extends EditRecord
 ### Basic Registration
 
 ```typescript
-import { componentRegistry } from '@hadyfayed/filament-react-wrapper';
+import { componentRegistry } from '@react-wrapper';
 
 componentRegistry.register({
   name: 'UserCard',
@@ -197,7 +181,7 @@ componentRegistry.register({
 ### Bulk Registration
 
 ```typescript
-import { registerComponents } from '@hadyfayed/filament-react-wrapper';
+import { registerComponents } from '@react-wrapper';
 
 const components = [
   { name: 'Button', component: Button },
@@ -451,7 +435,7 @@ class UserResource extends Resource
 ### Using State Manager Provider
 
 ```typescript
-import { StateManagerProvider, useStateManager } from '@hadyfayed/filament-react-wrapper';
+import { StateManagerProvider, useStateManager } from '@react-wrapper';
 
 function App() {
   return (
@@ -484,7 +468,7 @@ function MyComponent() {
 ### Using State Path Hook
 
 ```typescript
-import { useStatePath } from '@hadyfayed/filament-react-wrapper';
+import { useStatePath } from '@react-wrapper';
 
 function UserProfile() {
   const [user, setUser] = useStatePath('user', { name: '', email: '' });
@@ -507,7 +491,7 @@ function UserProfile() {
 ### Global State Manager
 
 ```typescript
-import { globalStateManager } from '@hadyfayed/filament-react-wrapper';
+import { globalStateManager } from '@react-wrapper';
 
 // Set global state
 globalStateManager.setState('app.theme', 'dark');
@@ -529,7 +513,7 @@ unsubscribe();
 ### Using Persisted State Hook
 
 ```typescript
-import { usePersistedState } from '@hadyfayed/filament-react-wrapper';
+import { usePersistedState } from '@react-wrapper';
 
 function ThemeSelector() {
   const [theme, setTheme] = usePersistedState('theme', 'light', {
@@ -550,7 +534,7 @@ function ThemeSelector() {
 ### Manual Persistence Service
 
 ```typescript
-import { statePersistenceService } from '@hadyfayed/filament-react-wrapper';
+import { statePersistenceService } from '@react-wrapper';
 
 // Register a persistence config
 statePersistenceService.register({
@@ -662,7 +646,7 @@ class UserForm extends Form
 ### Middleware System
 
 ```typescript
-import { componentRegistry } from '@hadyfayed/filament-react-wrapper';
+import { componentRegistry } from '@react-wrapper';
 
 // Global middleware
 componentRegistry.addMiddleware((component, props, context) => {
@@ -1117,7 +1101,7 @@ console.log('Active components:', universalReactRenderer.getActiveContainers());
 
 ```typescript
 import { render, screen } from '@testing-library/react';
-import { componentRegistry } from '@hadyfayed/filament-react-wrapper';
+import { componentRegistry } from '@react-wrapper';
 import MyComponent from './MyComponent';
 
 describe('Component Registry', () => {
@@ -1142,7 +1126,7 @@ describe('Component Registry', () => {
 ### Integration Testing
 
 ```typescript
-import { StateManagerProvider, useStatePath } from '@hadyfayed/filament-react-wrapper';
+import { StateManagerProvider, useStatePath } from '@react-wrapper';
 
 const TestComponent = () => {
   const [value, setValue] = useStatePath('test.value', 'initial');

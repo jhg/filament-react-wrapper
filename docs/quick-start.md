@@ -47,7 +47,7 @@ export default UserCard;
 
 ```javascript
 // resources/js/app.js
-import '@hadyfayed/filament-react-wrapper';
+import '@react-wrapper';
 import UserCard from './components/UserCard';
 
 // Register the component
@@ -157,7 +157,7 @@ class UserStatsWidget extends ReactWidget
 ```typescript
 // resources/js/components/InteractiveUserCard.tsx
 import React from 'react';
-import { useStatePath } from '@hadyfayed/filament-react-wrapper';
+import { useStatePath } from '@react-wrapper';
 
 const InteractiveUserCard: React.FC = () => {
     const [user, setUser] = useStatePath('currentUser', {
@@ -212,7 +212,7 @@ export default InteractiveUserCard;
 ```typescript
 // resources/js/components/UserPreferences.tsx
 import React from 'react';
-import { usePersistedState } from '@hadyfayed/filament-react-wrapper';
+import { usePersistedState } from '@react-wrapper';
 
 const UserPreferences: React.FC = () => {
     const [theme, setTheme] = usePersistedState('userTheme', 'light', {
