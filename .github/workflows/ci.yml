@@ -124,6 +124,24 @@ jobs:
             livewire_name: '4'
             testbench: '^11.0'
             phpunit: '^12.0'
+          - php: '8.4'
+            laravel: '^13.1'
+            laravel_name: '13'
+            filament: '^5.0'
+            filament_name: '5'
+            livewire: '^4.0'
+            livewire_name: '4'
+            testbench: '^11.0'
+            phpunit: '^13.0'
+          - php: '8.5'
+            laravel: '^13.1'
+            laravel_name: '13'
+            filament: '^5.0'
+            filament_name: '5'
+            livewire: '^4.0'
+            livewire_name: '4'
+            testbench: '^11.0'
+            phpunit: '^13.0'
 
     steps:
       - name: Checkout code
@@ -135,6 +153,12 @@ jobs:
           php-version: ${{ matrix.php }}
 
       - name: Resolve framework combination
+        env:
+          # Laravel 11 is retained as a compatibility target even though
+          # current Packagist metadata flags its supported releases. Keep
+          # security blocking disabled only for this compatibility resolver;
+          # dependency auditing remains a separate concern.
+          COMPOSER_NO_SECURITY_BLOCKING: '1'
         run: >-
           composer update
           "laravel/framework:${{ matrix.laravel }}"
