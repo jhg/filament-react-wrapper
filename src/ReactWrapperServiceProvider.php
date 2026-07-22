@@ -17,11 +17,19 @@ use HadyFayed\ReactWrapper\Mapping\ReactPhpFunctionMap;
 use HadyFayed\ReactWrapper\Middleware\ReactWrapperMiddleware;
 use HadyFayed\ReactWrapper\Blade\ReactDirective;
 use HadyFayed\ReactWrapper\Console\IntegrationReportCommand;
+use HadyFayed\ReactWrapper\Console\PublishAssetsCommand;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Event;
+use Filament\Support\Assets\Js;
+use Filament\Support\Facades\FilamentAsset;
+use Throwable;
 
 class ReactWrapperServiceProvider extends ServiceProvider
 {
+    public const FILAMENT_ASSET_PACKAGE = 'hadyfayed/filament-react-wrapper';
+
+    public const FILAMENT_ASSET_ID = 'react-wrapper';
+
     public function register()
     {
         // Merge configuration
@@ -51,6 +59,11 @@ class ReactWrapperServiceProvider extends ServiceProvider
 
         // Publish configuration and assets
         $this->publishAssets();
+
+        // Register the self-contained Composer asset with Filament. Filament
+        // publishes it to public/ and loads it in panel layouts, so the
+        // application does not need a separate NPM package or Vite entrypoint.
+        $this->registerFilamentAsset();
 
         // Register Blade components and directives
         $this->app->make(ReactDirective::class)->register();
@@ -173,10 +186,12 @@ class ReactWrapperServiceProvider extends ServiceProvider
             __DIR__.'/../resources/js/bootstrap-react.tsx' => resource_path('js/bootstrap-react.tsx'),
         ], 'react-wrapper-bootstrap');
 
-        // Publish prebuilt assets for production use (no build step required)
-        if (is_dir(__DIR__.'/../dist/laravel')) {
+        // Keep the legacy publication tag for applications that already use
+        // the old public/vendor/react-wrapper layout. New installations use
+        // FilamentAsset and the package-specific assets command below.
+        if (is_file(self::getComposerAssetPath())) {
             $this->publishes([
-                __DIR__.'/../dist/laravel' => public_path('vendor/react-wrapper'),
+                self::getComposerAssetPath() => self::getComposerAssetPublishPath(),
             ], 'react-wrapper-prebuilt');
         }
 
@@ -186,6 +201,37 @@ class ReactWrapperServiceProvider extends ServiceProvider
             __DIR__.'/../resources/js/bootstrap-react.tsx' => resource_path('js/bootstrap-react.tsx'),
             __DIR__.'/../resources/views' => resource_path('views/vendor/react-wrapper'),
         ], 'react-wrapper');
+    }
+
+    protected function registerFilamentAsset(): void
+    {
+        if (config('react-wrapper.assets.mode', 'prebuilt') === 'vite') {
+            return;
+        }
+
+        $assetPath = self::getComposerAssetPath();
+
+        if (! is_file($assetPath)) {
+            return;
+        }
+
+        try {
+            FilamentAsset::register([
+                Js::make(self::FILAMENT_ASSET_ID, $assetPath)->defer(),
+            ], self::FILAMENT_ASSET_PACKAGE);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+    }
+
+    public static function getComposerAssetPath(): string
+    {
+        return __DIR__.'/../resources/vendor/react-wrapper.js';
+    }
+
+    public static function getComposerAssetPublishPath(): string
+    {
+        return public_path('vendor/react-wrapper/js/react-wrapper.js');
     }
 
     protected function registerFilamentIntegration(): void
@@ -420,6 +466,7 @@ class ReactWrapperServiceProvider extends ServiceProvider
             $this->commands([
                 IntegrationReportCommand::class,
                 \HadyFayed\ReactWrapper\Console\InstallCommand::class,
+                PublishAssetsCommand::class,
                 \HadyFayed\ReactWrapper\Console\ComponentCommand::class,
             ]);
         }

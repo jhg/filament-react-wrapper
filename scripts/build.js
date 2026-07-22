@@ -159,7 +159,21 @@ class BuildManager {
   async buildLaravelAssets() {
     this.log('Building Laravel assets...');
     this.exec('vite build --config vite.laravel.config.js --mode production');
+    this.copyLaravelComposerAsset();
     this.log('Laravel assets build completed', 'success');
+  }
+
+  copyLaravelComposerAsset() {
+    const source = 'dist/laravel/js/react-wrapper.js';
+    const target = 'resources/vendor/react-wrapper.js';
+
+    if (!fs.existsSync(source)) {
+      throw new Error(`Laravel bundle missing: ${source}`);
+    }
+
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(source, target);
+    this.log(`Copied ${source} to ${target}`, 'debug');
   }
 
   async buildUMD() {
@@ -269,7 +283,10 @@ export default defineConfig({
     }
     
     if (this.buildTarget === 'all' || this.buildTarget === 'laravel') {
-      requiredFiles.push('dist/laravel/js/react-wrapper.js');
+      requiredFiles.push(
+        'dist/laravel/js/react-wrapper.js',
+        'resources/vendor/react-wrapper.js',
+      );
     }
     
     if (this.buildTarget === 'all' || this.buildTarget === 'umd') {

@@ -6,6 +6,11 @@ vendor/
 dist/
 build/
 
+# The Laravel runtime is a committed Composer asset. The rest of dist/ stays
+# ignored because it is only needed for the NPM/release build artifacts.
+!resources/vendor/
+!resources/vendor/react-wrapper.js
+
 # Environment files
 .env
 .env.local

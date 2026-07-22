@@ -48,7 +48,7 @@ class AssetManager
      */
     public function isLaravelBundleAvailable(): bool
     {
-        return File::exists(public_path('vendor/react-wrapper/js/react-wrapper.js'));
+        return $this->isFilamentAssetPublished() || $this->isLegacyLaravelBundlePublished();
     }
 
     /**
@@ -56,6 +56,10 @@ class AssetManager
      */
     public function shouldUseLaravelBundle(): bool
     {
+        if (config('react-wrapper.assets.mode', 'prebuilt') === 'vite') {
+            return false;
+        }
+
         // Force Laravel bundle if configured
         if (config('react-wrapper.assets.force_laravel_bundle', false)) {
             return $this->isLaravelBundleAvailable();
@@ -321,6 +325,18 @@ class AssetManager
     public function getMainBundleUrl(): ?string
     {
         if ($this->shouldUseLaravelBundle()) {
+            if ($this->isFilamentAssetPublished()) {
+                try {
+                    return \Filament\Support\Facades\FilamentAsset::getScriptSrc(
+                        \HadyFayed\ReactWrapper\ReactWrapperServiceProvider::FILAMENT_ASSET_ID,
+                        \HadyFayed\ReactWrapper\ReactWrapperServiceProvider::FILAMENT_ASSET_PACKAGE,
+                    );
+                } catch (\Throwable) {
+                    // Fall back to the legacy URL below if an older Filament
+                    // asset manager cannot resolve the registered asset.
+                }
+            }
+
             return asset('vendor/react-wrapper/js/react-wrapper.js');
         }
 
@@ -370,7 +386,8 @@ class AssetManager
         }
 
         if ($this->shouldUseLaravelBundle()) {
-            // Laravel bundle includes React and ReactDOM externally
+            // The Composer-distributed bundle is self-contained. Legacy
+            // published bundles still work through the compatibility path.
             return '<script src="' . htmlspecialchars($bundleUrl) . '" defer></script>';
         }
 
@@ -379,19 +396,39 @@ class AssetManager
     }
 
     /**
-     * Generate required external dependencies for Laravel bundle
+     * Generate compatibility dependencies for legacy Laravel bundles.
      */
     public function generateExternalDependencies(): array
     {
-        if (!$this->shouldUseLaravelBundle()) {
+        if (!$this->shouldUseLaravelBundle() || !$this->isLegacyLaravelBundlePublished()) {
             return [];
         }
 
-        // Laravel bundle expects React and ReactDOM to be available globally
+        // Keep compatibility with bundles published by versions before the
+        // Composer asset became self-contained. New bundles do not use a CDN.
         return [
             '<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>',
             '<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>',
         ];
+    }
+
+    protected function isFilamentAssetPublished(): bool
+    {
+        if (! class_exists(\Filament\Support\Assets\Js::class)) {
+            return false;
+        }
+
+        $asset = \Filament\Support\Assets\Js::make(
+            \HadyFayed\ReactWrapper\ReactWrapperServiceProvider::FILAMENT_ASSET_ID,
+            \HadyFayed\ReactWrapper\ReactWrapperServiceProvider::getComposerAssetPath(),
+        )->package(\HadyFayed\ReactWrapper\ReactWrapperServiceProvider::FILAMENT_ASSET_PACKAGE);
+
+        return File::exists($asset->getPublicPath());
+    }
+
+    protected function isLegacyLaravelBundlePublished(): bool
+    {
+        return File::exists(public_path('vendor/react-wrapper/js/react-wrapper.js'));
     }
 
     /**

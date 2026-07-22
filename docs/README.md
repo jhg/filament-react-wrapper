@@ -2,10 +2,9 @@
 
 Use the guides in this order if you are new to the package:
 
-1. [Installation](installation.md)
-2. [Quick start](quick-start.md)
-3. [Component registry](component-registry.md)
-4. [Filament fields and widgets](../README.md#filament-fields-and-widgets)
+1. [README installation and quick start](../README.md)
+2. [Component registry](component-registry.md)
+3. [Filament fields and widgets](../README.md#filament-fields-and-widgets)
 
 Reference and feature guides:
 
@@ -20,9 +19,9 @@ Reference and feature guides:
 
 ## Runtime model
 
-The Composer package owns the Laravel, Blade, Filament, Livewire, registry, asset, and state-integration pieces. The package JavaScript is published into `resources/js/react-wrapper/` and loaded by the application’s normal Vite entrypoint through `resources/js/bootstrap-react.tsx`.
+The Composer package owns the Laravel, Blade, Filament, Livewire, registry, asset, and state-integration pieces. Its default installation includes a self-contained prebuilt JavaScript runtime and registers it with Filament’s asset manager. The application does not need Node or NPM unless it develops application-owned React components.
 
-There is no package-specific Filament panel plugin and no custom Vite plugin. The application still uses its own standard `laravel-vite-plugin` and `@vitejs/plugin-react` when it needs Laravel asset compilation.
+There is no package-specific Filament panel plugin and no custom Vite plugin. The optional `--dev` workflow publishes the TypeScript source and uses the application’s standard `laravel-vite-plugin` and `@vitejs/plugin-react`.
 
 ## Compatibility
 

@@ -88,7 +88,12 @@ return [
     |
     */
     'assets' => [
+        // "prebuilt" is the zero-Node installation path. Set this to "vite"
+        // when the application imports the published TypeScript source and
+        // owns the React build itself.
+        'mode' => env('REACT_WRAPPER_ASSET_MODE', 'prebuilt'),
         'auto_load' => env('REACT_WRAPPER_AUTO_LOAD_ASSETS', true),
+        'force_laravel_bundle' => env('REACT_WRAPPER_FORCE_LARAVEL_BUNDLE', false),
         'manifest_path' => public_path('build/.vite/manifest.json'),
         'base_url' => env('REACT_WRAPPER_BASE_URL', '/build'),
         'chunk_loading' => 'async',

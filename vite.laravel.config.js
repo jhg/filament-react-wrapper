@@ -2,7 +2,11 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
-// Laravel-ready build configuration
+// Laravel-ready build configuration.
+//
+// This is the Composer-distributed runtime. It deliberately bundles React and
+// ReactDOM so an application can use the package without installing Node or
+// loading executable JavaScript from a third-party CDN.
 export default defineConfig({
     plugins: [
         react({
@@ -19,15 +23,10 @@ export default defineConfig({
                 assetFileNames: 'assets/[name]-[hash][extname]',
                 format: 'umd',
                 name: 'ReactWrapper',
-                globals: {
-                    react: 'React',
-                    'react-dom': 'ReactDOM'
-                }
-            },
-            external: ['react', 'react-dom']
+            }
         },
         outDir: 'dist/laravel',
-        sourcemap: true,
+        sourcemap: false,
         minify: 'terser',
         target: 'es2020'
     },

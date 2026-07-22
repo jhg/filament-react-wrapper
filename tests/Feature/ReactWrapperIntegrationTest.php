@@ -4,8 +4,11 @@ namespace HadyFayed\ReactWrapper\Tests\Feature;
 
 use HadyFayed\ReactWrapper\Forms\Components\ReactField;
 use HadyFayed\ReactWrapper\Factories\ReactComponentFactory;
+use HadyFayed\ReactWrapper\ReactWrapperServiceProvider;
 use HadyFayed\ReactWrapper\Tests\TestCase;
 use HadyFayed\ReactWrapper\Widgets\ReactWidget;
+use Filament\Support\Facades\FilamentAsset;
+use Illuminate\Support\Facades\File;
 
 class ReactWrapperIntegrationTest extends TestCase
 {
@@ -17,6 +20,42 @@ class ReactWrapperIntegrationTest extends TestCase
     public function test_it_can_register_react_components()
     {
         $this->assertTrue(true);
+    }
+
+    public function test_the_prebuilt_runtime_is_registered_as_a_filament_asset(): void
+    {
+        $assets = FilamentAsset::getScripts([
+            'hadyfayed/filament-react-wrapper',
+        ]);
+
+        $this->assertCount(1, $assets);
+        $this->assertSame('react-wrapper', $assets[0]->getId());
+        $this->assertFileExists($assets[0]->getPath());
+        $this->assertStringNotContainsString('unpkg.com', file_get_contents($assets[0]->getPath()));
+        $this->assertArrayHasKey(
+            'filament-react:assets',
+            \Artisan::all(),
+        );
+    }
+
+    public function test_the_asset_command_publishes_the_runtime_to_filaments_asset_path(): void
+    {
+        config()->set('filament.assets_path', 'react-wrapper-test');
+
+        $destination = public_path('react-wrapper-test/js/hadyfayed/filament-react-wrapper/react-wrapper.js');
+
+        try {
+            $this->artisan('filament-react:assets', ['--force' => true])
+                ->assertExitCode(0);
+
+            $this->assertFileExists($destination);
+            $this->assertSame(
+                file_get_contents(ReactWrapperServiceProvider::getComposerAssetPath()),
+                file_get_contents($destination),
+            );
+        } finally {
+            File::deleteDirectory(public_path('react-wrapper-test'));
+        }
     }
 
     public function test_filament_components_can_be_loaded_and_configured()

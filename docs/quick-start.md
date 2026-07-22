@@ -1,6 +1,8 @@
 # Quick start
 
-This guide assumes [installation](installation.md) is complete.
+This advanced walkthrough assumes the [README installation](../README.md#installation) is complete.
+
+The examples below define application-owned React components, so run `php artisan filament-react:install --dev` first. The default Composer-only installation is sufficient when the application only consumes the package runtime.
 
 ## 1. Create and register a component
 
@@ -104,7 +106,7 @@ const [theme, setTheme] = usePersistedState('theme', 'light', {
 });
 ```
 
-## 5. Build and debug
+## 5. Build and debug (development mode)
 
 ```bash
 npm run dev

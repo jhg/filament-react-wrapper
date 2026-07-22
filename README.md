@@ -1,6 +1,6 @@
 # Filament React Wrapper
 
-React components inside Laravel and Filament, with a small Composer package and a published TypeScript source tree. The package does not register a Filament panel plugin and does not ship a custom Vite plugin: it uses the application’s normal Laravel/Vite pipeline.
+React components inside Laravel and Filament. The Composer package includes a self-contained, prebuilt runtime managed by Filament’s asset system, so a separate NPM package is not required. The package does not register a Filament panel plugin and does not ship a custom Vite plugin.
 
 ## Requirements
 
@@ -8,8 +8,8 @@ React components inside Laravel and Filament, with a small Composer package and 
 - Laravel 11, 12, or 13
 - Filament 3, 4, or 5
 - Livewire 3 or 4, according to the Filament version
-- Node.js 20+ for the Vite 7 toolchain
-- React and React DOM 18+
+- Node.js 20+ only for the optional `--dev` workflow
+- React and React DOM 18+ only for application-owned components
 
 The supported combinations are tested explicitly in [CI](.github/workflows/ci.yml); the matrix includes PHP 8.4 and PHP 8.5.
 
@@ -18,27 +18,44 @@ The supported combinations are tested explicitly in [CI](.github/workflows/ci.ym
 ```bash
 composer require hadyfayed/filament-react-wrapper
 php artisan filament-react:install
+```
+
+The default installer is Composer-first. It publishes:
+
+- `config/react-wrapper.php`
+- the prebuilt React runtime through Filament’s asset manager
+- a root Composer hook that refreshes the runtime after dependency updates
+
+It does not require `package.json`, Node.js, NPM, Vite, or a package-specific build.
+
+The prebuilt runtime is enough for the package integration itself. If the application defines React components such as `UserCard`, opt into the development workflow:
+
+```bash
+php artisan filament-react:install --dev
 npm run dev
 ```
 
-The installer publishes:
+This publishes the TypeScript source and bootstrap entrypoint, installs the application build dependencies, and configures Vite/TypeScript without replacing existing files unless `--force` is supplied. It also sets `REACT_WRAPPER_ASSET_MODE=vite` so the prebuilt runtime is not loaded twice.
 
-- `config/react-wrapper.php`
-- `resources/js/react-wrapper/` with the package source
-- `resources/js/bootstrap-react.tsx`
-- optional published Blade view overrides
-
-It never overwrites an existing `vite.config.js` or `tsconfig.json` unless `--force` is supplied. If an application already has a Vite setup, add the `@react-wrapper` alias shown in [the installation guide](docs/installation.md).
-
-The installer accepts `--demo`, `--zustand`, and `--force`. The generated component command is:
+The installer accepts `--demo`, `--zustand`, `--force`, and `--no-auto-assets`. The generated component command is:
 
 ```bash
 php artisan filament-react:component UserCard
 ```
 
+The runtime can be refreshed manually with `php artisan filament-react:assets --force`. The installer adds this command to the application’s `post-autoload-dump` Composer scripts by default, so `composer install` and `composer update` refresh the published asset automatically. Use `--no-auto-assets` if the application manages Composer scripts itself.
+
+### React version behavior
+
+The Composer prebuilt runtime bundles React 18.3.x and React DOM 18.3.x privately. If the application has React 17, 18, or 19 installed, that does not cause a conflict as long as the application only consumes the prebuilt runtime and does not pass application-built React components into it.
+
+When developing application-owned components with `--dev`, the package source uses the application’s own `react` and `react-dom`. The installer preserves versions already declared in `package.json`; if they are missing, it installs the tested React 18.3.x baseline. Keep `react` and `react-dom` on the same major version. React 18 is the tested baseline for the Vite workflow.
+
+Do not load the prebuilt runtime and the Vite runtime at the same time. `--dev` sets `REACT_WRAPPER_ASSET_MODE=vite` to prevent duplicate React copies and invalid-hook-call errors.
+
 ## Quick start
 
-Register a component in the application entrypoint:
+After running `filament-react:install --dev`, register a component in the application entrypoint:
 
 ```tsx
 // resources/js/app.tsx
@@ -50,6 +67,31 @@ registerComponent('UserCard', UserCard, {
   defaultProps: { role: 'Member' },
   metadata: { category: 'users', tags: ['profile'] },
 });
+```
+
+If the application already has `vite.config.js`, keep its existing plugins and add the package alias:
+
+```js
+// Merge this resolve block into the existing defineConfig() object.
+import { resolve } from 'node:path';
+
+export default defineConfig({
+    // Keep the application's existing plugins and build inputs.
+    resolve: {
+        alias: {
+            // Keep any existing aliases here.
+            '@react-wrapper': resolve(__dirname, 'resources/js/react-wrapper'),
+        },
+    },
+});
+```
+
+Make sure the entrypoint containing the registration is one of the inputs compiled by Laravel Vite, then import the bootstrap from it:
+
+```tsx
+// resources/js/app.tsx
+import './bootstrap-react';
+import './components/UserCard';
 ```
 
 Render it in Blade with the package directive:
@@ -70,7 +112,7 @@ For an explicit container, the runtime also discovers `data-react-component` ele
 ></div>
 ```
 
-Build the normal application assets:
+When using `--dev`, build the normal application assets:
 
 ```bash
 npm run dev       # development
@@ -79,7 +121,13 @@ npm run build     # production
 
 The application needs `@vitejs/plugin-react` for JSX/TSX compilation and `laravel-vite-plugin` if it uses Laravel’s standard Vite integration. Those are application build dependencies, not a package-specific Vite integration.
 
+For a manual DOM mount instead of `@react`, use `data-react-component` and `data-react-props` as shown above. Always use `Js::from()` or `@js()` when placing dynamic values in JavaScript.
+
 ## Filament fields and widgets
+
+The package is a standalone Filament integration, so no `PanelProvider`
+`->plugins(...)` registration is needed. A panel plugin would add an extra
+manual step and would not improve the shared runtime/asset installation.
 
 ### React field
 
@@ -128,7 +176,38 @@ export function App() {
 }
 ```
 
-Available state APIs include `useStateManager`, `useStatePath`, `globalStateManager`, `usePersistedState`, `StateManagerFactory`, and the lower-level `StateManagerService` classes. See [state management](docs/state-management.md).
+`useStatePath()` shares values between all components rendered below the same
+`StateManagerProvider`; it stays entirely in React and does not go through
+Livewire. For React roots that do not share a provider, use the exported
+`globalStateManager` instead.
+
+To persist a value between page loads:
+
+```tsx
+import { usePersistedState } from '@react-wrapper';
+
+function Preferences() {
+  const [prefs, setPrefs] = usePersistedState('user-prefs', {
+    theme: 'light',
+    compact: false,
+  });
+
+  return <button onClick={() => setPrefs(current => ({ ...current, compact: !current.compact }))}>
+    {prefs.compact ? 'Compact' : 'Comfortable'}
+  </button>;
+}
+```
+
+By default, `usePersistedState()` serializes the value as JSON and stores it in
+the browser's `localStorage` under the supplied key. It is client-side
+persistence: it survives reloads and browser restarts for the same origin, but
+it is not Laravel session state, database state, or a secure store. Use
+`storage: 'sessionStorage'` for tab/session lifetime or `storage: 'none'` to
+disable browser storage. The optional `syncWithLivewire` configuration can
+also mirror changes through the application's `window.workflowDataSync`
+callback; it does not change where the primary browser persistence happens.
+
+Available state APIs include `useStateManager`, `useStatePath`, `globalStateManager`, `usePersistedState`, `StateManagerFactory`, and the lower-level `StateManagerService` classes. See [state management](docs/state-management.md) for provider scope, storage options, debouncing, and Livewire synchronization.
 
 ## Component registry and advanced services
 
@@ -153,6 +232,53 @@ php artisan vendor:publish --tag=react-wrapper-config
 
 The main sections are `debug`, `registry`, `assets`, `vite`, `integrations.filament`, `state`, `extensions`, and `security`. Keep `REACT_WRAPPER_DEBUG=false` in production. The `vite` section describes the application’s dev server/manifest discovery; it is not a package plugin.
 
+The relevant asset settings are:
+
+```dotenv
+# Default: package-owned prebuilt runtime.
+REACT_WRAPPER_ASSET_MODE=prebuilt
+
+# Set to vite when using filament-react:install --dev.
+# REACT_WRAPPER_ASSET_MODE=vite
+```
+
+To customize package markup, publish only the views you need:
+
+```bash
+php artisan vendor:publish --tag=react-wrapper-views
+```
+
+Published views are loaded from `resources/views/vendor/react-wrapper/` and take precedence over the package views.
+
+## Updating and troubleshooting
+
+The default installer adds this root Composer script:
+
+```json
+{
+    "scripts": {
+        "post-autoload-dump": [
+            "@php artisan filament-react:assets --force"
+        ]
+    }
+}
+```
+
+Consequently, the prebuilt runtime is refreshed after `composer install` and `composer update`. To refresh it manually:
+
+```bash
+php artisan filament-react:assets --force
+php artisan optimize:clear
+```
+
+Common checks:
+
+- A custom component requires `--dev`, an app entrypoint import, and a matching `registerComponent()` name.
+- An alias error means `@react-wrapper` is missing or points to the wrong published source directory.
+- A stale prebuilt asset is fixed with `php artisan filament-react:assets --force`.
+- A reactive field must use `->reactive()` and the rendered page should receive `react-data-changed` events.
+- The bridge uses Livewire when available and falls back to HTTP only when configured; review CSRF/authentication policy before enabling that fallback in production.
+
 ## Testing and quality
 
 ```bash
@@ -168,9 +294,7 @@ The Vitest coverage gate includes the registry, both state managers, the rendere
 
 ## Documentation
 
-- [Documentation index](docs/README.md)
-- [Installation](docs/installation.md)
-- [Quick start](docs/quick-start.md)
+- [Documentation index](docs/README.md) (advanced reference)
 - [PHP API](docs/api/php.md)
 - [TypeScript API](docs/api/typescript.md)
 - [Configuration reference](docs/api/config.md)
