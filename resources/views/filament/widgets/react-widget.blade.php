@@ -23,7 +23,7 @@
         <div
             id="{{ $containerId }}"
             data-react-component="{{ $componentName }}"
-            data-react-props="{{ json_encode($componentProps) }}"
+            data-react-props="{{ json_encode($componentProps, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}"
             data-lazy="{{ $isLazy ? 'true' : 'false' }}"
             data-polling="{{ $polling ? 'true' : 'false' }}"
             data-polling-interval="{{ $pollingInterval }}"

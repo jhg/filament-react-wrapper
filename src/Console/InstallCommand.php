@@ -117,11 +117,11 @@ class InstallCommand extends Command
         $result = null;
 
         if (! empty($runtimeDependencies)) {
-            $result = Process::run('npm install ' . implode(' ', $runtimeDependencies));
+            $result = Process::run('npm install --no-audit --no-fund ' . implode(' ', $runtimeDependencies));
         }
 
         if (($result === null || $result->successful()) && ! empty($developmentDependencies)) {
-            $result = Process::run('npm install --save-dev ' . implode(' ', $developmentDependencies));
+            $result = Process::run('npm install --save-dev --no-audit --no-fund ' . implode(' ', $developmentDependencies));
         }
 
         if ($result !== null && ! $result->successful()) {
@@ -527,7 +527,7 @@ TSX;
         $this->info('🎉 Next steps:');
 
         if ($development) {
-            $this->line('1. Import ./bootstrap-react from your application Vite entrypoint');
+            $this->line("1. Import './bootstrap-react' from your application Vite entrypoint");
             $this->line('2. Run: npm run dev');
             $this->line('3. Create your first component with: php artisan filament-react:component MyComponent');
 

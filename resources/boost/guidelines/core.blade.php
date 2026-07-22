@@ -28,6 +28,36 @@ ReactWidget::component('SalesChart')
     ->height(350);
 ```
 
+For server data, subclass the widget and return an array from `getData()`:
+
+```php
+final class SalesChartWidget extends ReactWidget
+{
+  public function __construct()
+  {
+    parent::__construct();
+    $this->withComponent('SalesChart')->polling('10s');
+  }
+
+  public function getData(): array
+  {
+    return ['labels' => ['Jan', 'Feb'], 'values' => [120, 180]];
+  }
+}
+```
+
+`SalesChart` receives that array as the normal React `data` prop. Polling
+invokes Livewire `refresh()` and the runtime updates `data` after the
+`widget-refreshed` event; the React component does not need a Livewire call.
+
+### Custom Filament Pages
+
+Custom Pages are Livewire components and can contain a generic React island.
+Use a stable `id`, explicit `data-react-state-path`, `wire:ignore`, and a
+controlled `value`/`onDataChange` prop. This is distinct from the
+`ReactField` contract; use `use$wire` or `useFilamentBridge` for page actions.
+In Vite mode, import `./bootstrap-react` from the application's entrypoint.
+
 ### Blade directives
 
 For React islands outside Filament panels (ordinary Blade pages):

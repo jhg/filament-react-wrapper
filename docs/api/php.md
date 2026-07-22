@@ -192,6 +192,60 @@ Public methods include:
 
 Override `getData()` to supply server-side widget data. The widget includes
 the polling, filters, theme, current user, and column span in its React props.
+Polling calls the widget's Livewire `refresh()` method; the runtime listens for
+the resulting `widget-refreshed` event and merges the returned data into the
+React component's `data` prop.
+
+```php
+final class SalesChartWidget extends ReactWidget
+{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->withComponent('SalesChart')->polling('10s');
+    }
+
+    public function getData(): array
+    {
+        return ['labels' => ['Jan', 'Feb'], 'values' => [120, 180]];
+    }
+}
+```
+
+The React component only consumes props:
+
+```tsx
+type SalesChartProps = {
+    data?: { labels?: string[]; values?: number[] };
+    period?: string;
+};
+
+export default function SalesChart({ data = {}, period }: SalesChartProps) {
+    return <pre>{JSON.stringify({ period, values: data.values ?? [] })}</pre>;
+}
+```
+
+## React in a custom Filament Page
+
+A custom Filament Page is already a Livewire component. In its Blade view, add
+an ordinary React island and give it an explicit Livewire state path when the
+React component should control a Page property.
+
+Use a stable container ID. The generic island receives value and onDataChange;
+it does not use the ReactField contract. The adapter resolves the Page's
+nearest Livewire component and synchronizes the explicit state path with
+$wire.$set() and $wire.$watch(). In --dev mode, the application's Vite
+entrypoint must import ./bootstrap-react; the prebuilt runtime does not contain
+application-owned components.
+
+```php
+final class ReactDashboard extends \Filament\Pages\Page
+{
+    protected static string $view = 'filament.pages.react-dashboard';
+
+    public array $filters = ['period' => 'month'];
+}
+```
 
 ## Blade directives
 
@@ -302,3 +356,40 @@ php artisan filament-react:component Name [--category=general] [--lazy] [--widge
 `filament-react:component` creates the TSX component under
 `resources/js/components/`. `--widget` and `--field` additionally generate
 Filament PHP classes. Use it in `--dev` mode.
+
+```blade
+<x-filament-panels::page>
+    <div
+        id="react-dashboard-page"
+        data-react-component="DashboardPage"
+        data-react-props='@js(["value" => $filters])'
+        data-react-state-path="filters"
+        data-react-reactive="true"
+        wire:ignore
+    ></div>
+</x-filament-panels::page>
+```
+</x-filament-panels::page>
+```
+
+```tsx
+type Filters = { period: string };
+
+export default function DashboardPage({
+    value = { period: 'month' },
+    onDataChange,
+}: {
+    value?: Filters;
+    onDataChange?: (next: Filters) => void;
+}) {
+    return (
+        <select
+            value={value.period}
+            onChange={event => onDataChange?.({ period: event.target.value })}
+        >
+            <option value="month">This month</option>
+            <option value="year">This year</option>
+        </select>
+    );
+}
+```

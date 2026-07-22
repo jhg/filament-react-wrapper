@@ -55,10 +55,13 @@ Do not load the prebuilt runtime and the Vite runtime at the same time. `--dev` 
 
 ## Quick start
 
-After running `filament-react:install --dev`, register a component in the application entrypoint:
+After running `filament-react:install --dev`, register a component in the
+application's Laravel Vite entrypoint (normally `resources/js/app.js`; use the
+existing `.ts`/`.tsx` entrypoint if the application already has one):
 
-```tsx
-// resources/js/app.tsx
+```js
+// resources/js/app.js
+import './bootstrap-react';
 import { defineComponents } from '@react-wrapper';
 import UserCard from './components/UserCard';
 
@@ -144,6 +147,75 @@ ReactWidget::component('DashboardChart')
     ->height(320)
     ->polling('10s');
 ```
+
+For server-side data, subclass `ReactWidget` and return the data from
+`getData()`. Polling calls the Livewire `refresh()` method; the adapter then
+updates the React component's `data` prop after the server response:
+
+```php
+final class SalesChartWidget extends ReactWidget
+{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->withComponent('SalesChart')->polling('10s');
+    }
+
+    public function getData(): array
+    {
+        return [
+            'labels' => ['Jan', 'Feb', 'Mar'],
+            'values' => [120, 180, 145],
+        ];
+    }
+}
+```
+
+The corresponding React component receives ordinary props and does not need
+to call Livewire:
+
+```tsx
+type SalesChartProps = {
+    data?: { labels?: string[]; values?: number[] };
+    period?: string;
+};
+
+export default function SalesChart({ data = {}, period }: SalesChartProps) {
+    return (
+        <div>
+            <strong>{period ?? 'all time'}</strong>
+            <pre>{JSON.stringify(data.values ?? [], null, 2)}</pre>
+        </div>
+    );
+}
+```
+
+### React in a custom Filament Page
+
+Custom Filament Pages are Livewire components, so the runtime can mount a
+React island in their Blade view. Use a stable container ID and an explicit
+state path when the island controls a Page property. The generic island
+receives value and onDataChange; ReactField is not required. In development
+mode, import ./bootstrap-react from the application Vite entrypoint.
+
+See the complete Page PHP, Blade, and TSX example in docs/api/php.md.
+
+```blade
+<x-filament-panels::page>
+    <div
+        id="react-dashboard-page"
+        data-react-component="DashboardPage"
+        data-react-props='@js(["value" => $filters])'
+        data-react-state-path="filters"
+        data-react-reactive="true"
+        wire:ignore
+    ></div>
+</x-filament-panels::page>
+```
+
+The generic component receives value and onDataChange. The adapter synchronizes
+the explicit state path with the Page's nearest Livewire component; use
+use$wire or useFilamentBridge for page actions.
 
 ### A real React input connected to Filament
 
@@ -350,7 +422,7 @@ Publish the configuration when needed:
 php artisan vendor:publish --tag=react-wrapper-config
 ```
 
-The main sections are `debug`, `registry`, `assets`, `vite`, `integrations.filament`, `state`, `extensions`, and `security`. Keep `REACT_WRAPPER_DEBUG=false` in production. The `vite` section describes the application’s dev server/manifest discovery; it is not a package plugin.
+The main sections are `registry`, `assets`, `vite`, `integrations.filament`, `extensions`, and `share_routes`. Browser diagnostics are controlled by the `devTools` API or the `?react-wrapper-debug=true` query parameter; they are not a package configuration section. The `vite` section describes the application’s dev server/manifest discovery; it is not a package plugin.
 
 The relevant asset settings are:
 

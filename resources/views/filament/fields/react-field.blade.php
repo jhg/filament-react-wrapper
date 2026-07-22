@@ -10,7 +10,7 @@
     <div
         id="{{ $containerId }}"
         data-react-component="{{ $componentName }}"
-        data-react-props="{{ json_encode($componentProps) }}"
+        data-react-props="{{ json_encode($componentProps, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}"
         data-react-state-path="{{ $getStatePath() }}"
         data-react-reactive="{{ ($reactive ?? true) ? 'true' : 'false' }}"
         data-lazy="{{ $isLazy ? 'true' : 'false' }}"

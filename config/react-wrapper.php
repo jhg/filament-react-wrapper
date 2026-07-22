@@ -43,8 +43,6 @@ return [
     'registry' => [
         'cache' => [
             'enabled' => env('REACT_WRAPPER_CACHE', true),
-            'driver' => env('REACT_WRAPPER_CACHE_DRIVER', 'file'),
-            'ttl' => env('REACT_WRAPPER_CACHE_TTL', 3600),
         ],
         
         'auto_discovery' => [
@@ -71,12 +69,6 @@ return [
     */
     'defaults' => [
         'lazy' => false,
-        'cache' => false,
-        'ssr' => false,
-        'hydrate' => true,
-        'wrapper' => 'div',
-        'attributes' => [],
-        'middleware' => [],
     ],
 
     /*
@@ -92,14 +84,10 @@ return [
         // when the application imports the published TypeScript source and
         // owns the React build itself.
         'mode' => env('REACT_WRAPPER_ASSET_MODE', 'prebuilt'),
-        'auto_load' => env('REACT_WRAPPER_AUTO_LOAD_ASSETS', true),
         'force_laravel_bundle' => env('REACT_WRAPPER_FORCE_LARAVEL_BUNDLE', false),
-        'manifest_path' => public_path('build/.vite/manifest.json'),
         'base_url' => env('REACT_WRAPPER_BASE_URL', '/build'),
-        'chunk_loading' => 'async',
         'preload' => [
             'components' => true,
-            'chunks' => false,
         ],
     ],
 
@@ -113,99 +101,6 @@ return [
     */
     'extensions' => [
         'auto_boot' => env('REACT_WRAPPER_AUTO_BOOT_EXTENSIONS', true),
-        'discovery_paths' => [
-            'app/ReactExtensions',
-            'vendor/*/src/ReactExtensions',
-        ],
-        'enabled' => [],
-        'disabled' => [],
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Performance
-    |--------------------------------------------------------------------------
-    |
-    | Performance optimization configuration.
-    |
-    */
-    'performance' => [
-        'lazy_loading' => [
-            'enabled' => env('REACT_WRAPPER_LAZY_LOADING', true),
-            'threshold' => '100px',
-        ],
-        'code_splitting' => [
-            'enabled' => env('REACT_WRAPPER_CODE_SPLITTING', true),
-            'chunk_size' => env('REACT_WRAPPER_CHUNK_SIZE', 250000),
-        ],
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Development Mode
-    |--------------------------------------------------------------------------
-    |
-    | Enable development mode for additional debugging and development tools.
-    |
-    */
-    'dev_mode' => env('REACT_WRAPPER_DEV_MODE', app()->environment('local')),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Development
-    |--------------------------------------------------------------------------
-    |
-    | Development-specific settings.
-    |
-    */
-    'development' => [
-        'hot_reload' => env('REACT_WRAPPER_HOT_RELOAD', true),
-        'debug' => env('REACT_WRAPPER_DEBUG', false),
-        'error_overlay' => env('REACT_WRAPPER_ERROR_OVERLAY', true),
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Error Handling
-    |--------------------------------------------------------------------------
-    |
-    | Configuration for error handling and display.
-    |
-    */
-    'error_handling' => [
-        'show_error_overlay' => env('REACT_WRAPPER_SHOW_ERROR_OVERLAY', app()->environment('local')),
-        'log_react_errors' => env('REACT_WRAPPER_LOG_REACT_ERRORS', true),
-        'error_boundary' => env('REACT_WRAPPER_ERROR_BOUNDARY', true),
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | State Management
-    |--------------------------------------------------------------------------
-    |
-    | Configuration for the state management system.
-    |
-    */
-    'state_management' => [
-        'persistence' => [
-            'default_storage' => 'localStorage',
-            'debounce_ms' => 300,
-        ],
-        'livewire_sync' => true,
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Security
-    |--------------------------------------------------------------------------
-    |
-    | Security-related configuration options.
-    |
-    */
-    'security' => [
-        'sanitize_props' => env('REACT_WRAPPER_SANITIZE_PROPS', true),
-        'max_prop_size' => env('REACT_WRAPPER_MAX_PROP_SIZE', 1024 * 100),
-        'allowed_origins' => ['*'],
     ],
 
     /*
@@ -219,11 +114,9 @@ return [
     'integrations' => [
         'filament' => [
             'enabled' => env('REACT_WRAPPER_FILAMENT', true),
-            'auto_register' => true,
-        ],
-        'livewire' => [
-            'enabled' => env('REACT_WRAPPER_LIVEWIRE', true),
-            'morph_aware' => true,
         ],
     ],
+
+    // Used only by VariableShareService when route sharing is explicitly enabled.
+    'share_routes' => false,
 ];

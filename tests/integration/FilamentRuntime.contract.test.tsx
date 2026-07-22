@@ -25,6 +25,26 @@ function IntegrationControlledEditor(props: ReactFieldProps<string>) {
   );
 }
 
+type PageFilters = { period: string };
+
+function IntegrationPageIsland({
+  value = { period: 'month' },
+  onDataChange,
+}: {
+  value?: PageFilters;
+  onDataChange?: (next: PageFilters) => void;
+}) {
+  return (
+    <button
+      type="button"
+      data-testid="page-island"
+      onClick={() => onDataChange?.({ period: 'year' })}
+    >
+      {value.period}
+    </button>
+  );
+}
+
 describe('Filament runtime contract', () => {
   const wire = {
     $set: vi.fn(),
@@ -120,6 +140,41 @@ describe('Filament runtime contract', () => {
       field.dispatchEvent(new CustomEvent('react-validation-clear', { bubbles: true }));
     });
     await waitFor(() => expect(field).not.toHaveTextContent('The editor value is invalid.'));
+  });
+
+  it('supports a generic controlled island inside a custom Filament Page', async () => {
+    componentRegistry.register({
+      name: 'IntegrationPageIsland',
+      component: IntegrationPageIsland,
+      isAsync: false,
+    });
+
+    window.Livewire = { find: vi.fn(() => wire) };
+    document.body.innerHTML = `
+      <div wire:id="custom-page-component">
+        <div
+          id="react-dashboard-page"
+          data-react-component="IntegrationPageIsland"
+          data-react-state-path="filters"
+          data-react-reactive="true"
+          data-react-props='{"value":{"period":"month"}}'
+        ></div>
+      </div>
+    `;
+
+    FilamentReactAdapter.initializeComponents();
+    await waitFor(() => expect(document.querySelector('[data-testid="page-island"]')).toBeTruthy());
+    expect(wire.$watch).toHaveBeenCalledWith('filters', expect.any(Function));
+
+    await act(async () => {
+      fireEvent.click(document.querySelector('[data-testid="page-island"]')!);
+    });
+    expect(wire.$set).toHaveBeenCalledWith('filters', { period: 'year' });
+
+    await act(async () => {
+      watchCallbacks.forEach(callback => callback({ period: 'week' }));
+    });
+    await waitFor(() => expect(document.querySelector('[data-testid="page-island"]')).toHaveTextContent('week'));
   });
 
   it('mounts components inserted after initialization and neutralizes stale watchers on removal', async () => {

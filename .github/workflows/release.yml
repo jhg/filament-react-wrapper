@@ -97,7 +97,7 @@ jobs:
         run: npm run lint:check
 
       - name: Build package
-        run: npm run build --skip-tests
+        run: npm run build -- --skip-tests --skip-lint
 
       - name: Run tests
         run: npm run test
@@ -127,17 +127,6 @@ jobs:
         run: |
           npm ci
           composer install --prefer-dist --no-interaction --no-dev --optimize-autoloader
-
-      - name: Update version in package files
-        run: |
-          # Update package.json
-          npm version ${{ needs.validate.outputs.version }} --no-git-tag-version
-          
-          # Update composer.json version if it exists
-          if [ -f composer.json ]; then
-            jq '.version = "${{ needs.validate.outputs.version }}"' composer.json > composer.json.tmp
-            mv composer.json.tmp composer.json
-          fi
 
       - name: Build production assets
         run: npm run build:all

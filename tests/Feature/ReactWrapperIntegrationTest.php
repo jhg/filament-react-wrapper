@@ -9,6 +9,7 @@ use HadyFayed\ReactWrapper\Tests\TestCase;
 use HadyFayed\ReactWrapper\Widgets\ReactWidget;
 use HadyFayed\ReactWrapper\Blade\ReactDirective;
 use Filament\Support\Facades\FilamentAsset;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
 
 class ReactWrapperIntegrationTest extends TestCase
@@ -146,5 +147,28 @@ class ReactWrapperIntegrationTest extends TestCase
         $this->assertStringContainsString('id="react-test"', $html);
         $this->assertStringNotContainsString('</script>', $html);
         $this->assertStringContainsString('data-react-component="&lt;/div&gt;', $html);
+    }
+
+    public function test_attribute_directives_hex_encode_untrusted_json_values(): void
+    {
+        $props = ['value' => '</script><script>alert("x")</script>'];
+
+        $propsHtml = Blade::render('@reactProps($props)', compact('props'));
+        $configHtml = Blade::render('@reactConfig($props)', compact('props'));
+
+        foreach ([$propsHtml, $configHtml] as $html) {
+            $this->assertStringStartsWith('data-react-', $html);
+            $this->assertStringContainsString('\u003C\/script\u003E\u003Cscript\u003E', $html);
+            $this->assertStringNotContainsString('</script>', $html);
+        }
+    }
+
+    public function test_filament_views_hex_encode_component_props_before_html_escaping(): void
+    {
+        $fieldView = file_get_contents(__DIR__.'/../../resources/views/filament/fields/react-field.blade.php');
+        $widgetView = file_get_contents(__DIR__.'/../../resources/views/filament/widgets/react-widget.blade.php');
+
+        $this->assertStringContainsString('JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT', $fieldView);
+        $this->assertStringContainsString('JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT', $widgetView);
     }
 }

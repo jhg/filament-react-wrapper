@@ -52,14 +52,18 @@ class ReactDirective
     protected function registerReactPropsDirective(): void
     {
         Blade::directive('reactProps', function ($expression) {
-            return "<?php echo 'data-react-props=\"' . htmlspecialchars(json_encode({$expression}), ENT_QUOTES, 'UTF-8') . '\"'; ?>";
+            // These directives write JSON into an HTML data attribute. Js::from()
+            // is intended for executable JavaScript and would emit a JS
+            // expression, so use JSON_HEX_* plus HTML escaping for this context.
+            return "<?php echo 'data-react-props=\"' . htmlspecialchars(json_encode({$expression}, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8') . '\"'; ?>";
         });
     }
 
     protected function registerReactConfigDirective(): void
     {
         Blade::directive('reactConfig', function ($expression) {
-            return "<?php echo 'data-react-config=\"' . htmlspecialchars(json_encode({$expression}), ENT_QUOTES, 'UTF-8') . '\"'; ?>";
+            // Keep the same attribute-safe JSON contract as @reactProps.
+            return "<?php echo 'data-react-config=\"' . htmlspecialchars(json_encode({$expression}, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT), ENT_QUOTES, 'UTF-8') . '\"'; ?>";
         });
     }
 

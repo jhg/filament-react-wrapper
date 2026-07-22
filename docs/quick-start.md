@@ -25,9 +25,9 @@ export default function UserCard({ name, email, role = 'User' }: UserCardProps) 
 }
 ```
 
-```tsx
-// resources/js/app.tsx
-import '@react-wrapper';
+```js
+// resources/js/app.js (or the existing app.tsx/app.ts entrypoint)
+import './bootstrap-react';
 import { registerComponent } from '@react-wrapper';
 import UserCard from './components/UserCard';
 
@@ -134,6 +134,7 @@ npm run dev
 npm run build
 ```
 
-For browser diagnostics, set `REACT_WRAPPER_DEBUG=true` and inspect `window.ReactWrapper.devTools`. Keep it disabled in production.
+For browser diagnostics, use `?react-wrapper-debug=true` or call
+`devTools.enable()` explicitly. Keep diagnostics disabled in production.
 
 Next: read the [component registry guide](component-registry.md), [state guide](state-management.md), or [testing guide](testing.md).
