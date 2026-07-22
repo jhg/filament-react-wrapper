@@ -65,51 +65,104 @@ class ReactDirective
 
     protected function parseDirectiveArguments(string $expression): array
     {
-        // Remove outer parentheses if present
-        $expression = trim($expression, '()');
-        
-        if (empty($expression)) {
+        $expression = trim($expression);
+
+        if ($expression === '') {
             return [];
         }
-        
-        // Simple parser for comma-separated arguments
-        // This handles basic cases, might need improvement for complex expressions
+
+        // Blade passes the full directive expression, including its outer
+        // parentheses. Remove exactly one balanced pair; trim('()') would
+        // silently remove meaningful parentheses from an argument.
+        if ($expression[0] === '(' && $this->hasSingleOuterPair($expression)) {
+            $expression = trim(substr($expression, 1, -1));
+        }
+
+        if ($expression === '') {
+            return [];
+        }
+
         $args = [];
         $currentArg = '';
         $depth = 0;
-        $inString = false;
-        $stringChar = null;
-        
-        for ($i = 0; $i < strlen($expression); $i++) {
+        $quote = null;
+        $escaped = false;
+
+        for ($i = 0, $length = strlen($expression); $i < $length; $i++) {
             $char = $expression[$i];
-            
-            if (!$inString) {
-                if ($char === '"' || $char === "'") {
-                    $inString = true;
-                    $stringChar = $char;
-                } elseif ($char === '[' || $char === '(') {
-                    $depth++;
-                } elseif ($char === ']' || $char === ')') {
-                    $depth--;
-                } elseif ($char === ',' && $depth === 0) {
-                    $args[] = trim($currentArg);
-                    $currentArg = '';
-                    continue;
+
+            if ($quote !== null) {
+                $currentArg .= $char;
+                if ($escaped) {
+                    $escaped = false;
+                } elseif ($char === '\\') {
+                    $escaped = true;
+                } elseif ($char === $quote) {
+                    $quote = null;
                 }
-            } else {
-                if ($char === $stringChar && ($i === 0 || $expression[$i - 1] !== '\\')) {
-                    $inString = false;
-                    $stringChar = null;
-                }
+                continue;
             }
-            
+
+            if ($char === '"' || $char === "'") {
+                $quote = $char;
+            } elseif (in_array($char, ['[', '(', '{'], true)) {
+                $depth++;
+            } elseif (in_array($char, [']', ')', '}'], true)) {
+                $depth--;
+            } elseif ($char === ',' && $depth === 0) {
+                $args[] = trim($currentArg);
+                $currentArg = '';
+                continue;
+            }
+
             $currentArg .= $char;
         }
-        
-        if (!empty($currentArg)) {
+
+        if ($quote !== null || $depth !== 0) {
+            throw new \InvalidArgumentException('Unbalanced quotes or brackets in reactComponent directive.');
+        }
+
+        if (trim($currentArg) !== '') {
             $args[] = trim($currentArg);
         }
-        
+
         return $args;
+    }
+
+    protected function hasSingleOuterPair(string $expression): bool
+    {
+        $depth = 0;
+        $quote = null;
+        $escaped = false;
+
+        for ($i = 0, $length = strlen($expression); $i < $length; $i++) {
+            $char = $expression[$i];
+
+            if ($quote !== null) {
+                if ($escaped) {
+                    $escaped = false;
+                } elseif ($char === '\\') {
+                    $escaped = true;
+                } elseif ($char === $quote) {
+                    $quote = null;
+                }
+                continue;
+            }
+
+            if ($char === '"' || $char === "'") {
+                $quote = $char;
+            } elseif ($char === '(') {
+                $depth++;
+            } elseif ($char === ')') {
+                $depth--;
+                if ($depth === 0 && $i !== $length - 1) {
+                    return false;
+                }
+            } else {
+                continue;
+            }
+        }
+
+        return $depth === 0 && $quote === null;
     }
 }

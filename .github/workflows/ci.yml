@@ -202,7 +202,7 @@ jobs:
         run: npm ci
 
       - name: Run npm audit
-        run: npm audit --audit-level moderate || true
+        run: npm audit --audit-level=high
 
       - name: Check for secrets
         uses: trufflesecurity/trufflehog@main
@@ -210,4 +210,3 @@ jobs:
           path: ./
           base: main
           head: HEAD
-        continue-on-error: true

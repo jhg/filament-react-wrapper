@@ -1,8 +1,7 @@
 {
     "name": "hadyfayed/filament-react-wrapper",
-    "version": "3.2.0",
-    "description": "React component integration system for FilamentPHP applications",
-    "keywords": ["filament", "react", "integration", "components", "universal", "laravel"],
+    "description": "Composer-first React component integration for Filament and Livewire applications",
+    "keywords": ["filament", "react", "livewire", "laravel", "form-fields", "widgets"],
     "license": "MIT",
     "authors": [
         {

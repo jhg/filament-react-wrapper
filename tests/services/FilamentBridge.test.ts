@@ -19,6 +19,18 @@ describe('FilamentBridge', () => {
     expect(call).toHaveBeenCalledWith('refresh', 1);
   });
 
+  it('uses Livewire 3 $call when the proxy exposes the documented API', async () => {
+    const call = vi.fn().mockResolvedValue({ ok: true });
+    Object.defineProperty(window, 'Livewire', {
+      configurable: true,
+      value: { find: vi.fn().mockReturnValue({ $call: call }) },
+    });
+    const bridge = new FilamentBridge({ livewireComponentId: 'lw-2' });
+
+    await expect(bridge.call('refresh')).resolves.toEqual({ ok: true });
+    expect(call).toHaveBeenCalledWith('refresh');
+  });
+
   it('uses the configured HTTP bridge and supports local listeners', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

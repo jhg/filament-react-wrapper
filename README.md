@@ -147,7 +147,16 @@ ReactWidget::component('DashboardChart')
 
 For a subclass, call `$this->withComponent('DashboardChart')` in its constructor or configure it through `ReactWidget::component()`. Widget data is supplied by overriding `getData()`.
 
-Both integrations keep the React DOM under `wire:ignore`, dispatch `react-data-changed` for reactive updates, and use Livewire’s current component when a component id is configured. The bridge falls back to HTTP only when no Livewire handle is available; configure the endpoint and CSRF policy before using that fallback in a production application.
+Both integrations keep the React DOM under `wire:ignore`. For a field, the
+runtime reads Filament’s full state path (for example `data.content`), finds
+the nearest Livewire `wire:id`, calls `$wire.$set(path, value)`, and watches
+`$wire.$watch(path, ...)` for server-to-React updates. This also applies to
+fields inserted later into modals, repeaters, wizards, and slideovers. Widget
+polling uses `$wire.$call('refresh')` and updates the React `data` prop.
+
+The separate `useFilamentBridge()` helper retains its HTTP fallback for
+applications without a Livewire handle; review CSRF/authentication policy
+before enabling that fallback in production.
 
 ## State management
 
@@ -236,7 +245,12 @@ export function RichEditor({ value, onChange, errors, disabled }: ReactFieldProp
 same functional-update ergonomics as React. Existing `initialData` and
 `onDataChange` components continue to work.
 
-Available state APIs include `useStateManager`, `useStatePath`, `useGlobalStatePath`, `globalStateManager`, `usePersistedState`, `useReactField`, `StateManagerFactory`, and the lower-level `StateManagerService` classes. See [state management](docs/state-management.md) for provider scope, storage options, debouncing, and Livewire synchronization.
+For new code, use normal React state for local data, `useFilamentState` for
+Filament-aware state, and `usePersistedState` for explicitly browser-persisted
+preferences. `useStateManager`, `useStatePath`, and `useGlobalStatePath` remain
+available for compatibility and deliberate cross-root state. See [state
+management](docs/state-management.md) for provider scope, storage options,
+debouncing, and persistence ownership.
 
 ## Component registry and advanced services
 

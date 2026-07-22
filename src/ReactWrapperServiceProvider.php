@@ -13,10 +13,8 @@ use HadyFayed\ReactWrapper\Integrations\FilamentPanelManager;
 use HadyFayed\ReactWrapper\Integrations\FilamentDataSharer;
 use HadyFayed\ReactWrapper\Integrations\FilamentHookRegistrar;
 use HadyFayed\ReactWrapper\Integrations\FilamentAssetRegistrar;
-use HadyFayed\ReactWrapper\Mapping\ReactPhpFunctionMap;
 use HadyFayed\ReactWrapper\Middleware\ReactWrapperMiddleware;
 use HadyFayed\ReactWrapper\Blade\ReactDirective;
-use HadyFayed\ReactWrapper\Console\IntegrationReportCommand;
 use HadyFayed\ReactWrapper\Console\PublishAssetsCommand;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Event;
@@ -114,16 +112,12 @@ class ReactWrapperServiceProvider extends ServiceProvider
         $this->app->singleton(FilamentAssetRegistrar::class);
         $this->app->singleton(FilamentIntegration::class);
 
-        // Register function mapping
-        $this->app->singleton(ReactPhpFunctionMap::class);
-
         // Aliases for easier access
         $this->app->alias(ReactComponentRegistry::class, 'react-wrapper.registry');
         $this->app->alias(ExtensionManager::class, 'react-wrapper.extensions');
         $this->app->alias(AssetManager::class, 'react-wrapper.assets');
         $this->app->alias(VariableShareService::class, 'react-wrapper.variables');
         $this->app->alias(FilamentIntegration::class, 'react-wrapper.filament');
-        $this->app->alias(ReactPhpFunctionMap::class, 'react-wrapper.mapping');
     }
 
     protected function registerFactories(): void
@@ -280,8 +274,7 @@ class ReactWrapperServiceProvider extends ServiceProvider
     {
         if (class_exists(\Illuminate\Foundation\Console\AboutCommand::class)) {
             \Illuminate\Foundation\Console\AboutCommand::add('React Wrapper', fn () => [
-                'PHP Version' => $this->getPackageVersion(),
-                'NPM Version' => $this->getNpmPackageVersion(),
+                'Package Version' => $this->getPackageVersion(),
                 'Components Registered' => $this->safeGetComponentCount(),
                 'Auto Discovery' => config('react-wrapper.registry.auto_discovery.enabled', true) ? '✓ Enabled' : '✗ Disabled',
                 'Cache Status' => config('react-wrapper.registry.cache.enabled', true) ? '✓ Enabled' : '✗ Disabled',
@@ -290,7 +283,6 @@ class ReactWrapperServiceProvider extends ServiceProvider
                 'Build Status' => $this->getBuildStatus(),
                 'Filament Integration' => $this->getFilamentIntegrationStatus(),
                 'Vite Dev Server' => $this->getViteDevServerStatus(),
-                'Integration Coverage' => $this->getIntegrationStats(),
                 'Extensions Loaded' => $this->getExtensionCount(),
             ]);
         }
@@ -303,23 +295,10 @@ class ReactWrapperServiceProvider extends ServiceProvider
             $content = file_get_contents($composerPath);
             if ($content !== false) {
                 $composer = json_decode($content, true);
-                return $composer['version'] ?? '1.0.0';
+                return $composer['version'] ?? 'Composer/Packagist metadata';
             }
         }
-        return '1.0.0';
-    }
-
-    protected function getNpmPackageVersion(): string
-    {
-        $packagePath = __DIR__.'/../package.json';
-        if (file_exists($packagePath)) {
-            $content = file_get_contents($packagePath);
-            if ($content !== false) {
-                $package = json_decode($content, true);
-                return $package['version'] ?? 'Unknown';
-            }
-        }
-        return 'Unknown';
+        return 'Composer/Packagist metadata';
     }
 
     protected function safeGetComponentCount(): string
@@ -365,21 +344,6 @@ class ReactWrapperServiceProvider extends ServiceProvider
             return $assetManager->isViteDevServerRunning() ? '✓ Running' : '✗ Not running';
         } catch (\Exception $e) {
             return '✗ Error checking server';
-        }
-    }
-
-    protected function getIntegrationStats(): string
-    {
-        try {
-            $mapping = $this->app->make(ReactPhpFunctionMap::class);
-            $percentage = $mapping->getAverageIntegrationPercentage();
-
-            if ($percentage >= 90) return "✓ {$percentage}% (Excellent)";
-            if ($percentage >= 70) return "⚠ {$percentage}% (Good)";
-            if ($percentage >= 50) return "⚠ {$percentage}% (Fair)";
-            return "✗ {$percentage}% (Poor)";
-        } catch (\Exception $e) {
-            return '✗ Error calculating stats';
         }
     }
 
@@ -464,7 +428,6 @@ class ReactWrapperServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                IntegrationReportCommand::class,
                 \HadyFayed\ReactWrapper\Console\InstallCommand::class,
                 PublishAssetsCommand::class,
                 \HadyFayed\ReactWrapper\Console\ComponentCommand::class,

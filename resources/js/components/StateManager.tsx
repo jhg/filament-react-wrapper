@@ -15,6 +15,14 @@ import {
   type StateSubscribers,
 } from '../utils/state';
 
+/**
+ * Legacy general-purpose state API. Prefer normal React state for local data,
+ * `useFilamentState` for Filament integration, or the application's own
+ * external store for shared application state.
+ *
+ * @deprecated Retained for compatibility; no new generated code should use it.
+ */
+
 // Forward declaration of GlobalStateManager interface for use in Window interface
 interface GlobalStateManagerInterface {
   setState(path: string, value: unknown | ((current: unknown) => unknown)): void;

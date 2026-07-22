@@ -7,6 +7,7 @@ use HadyFayed\ReactWrapper\Factories\ReactComponentFactory;
 use HadyFayed\ReactWrapper\ReactWrapperServiceProvider;
 use HadyFayed\ReactWrapper\Tests\TestCase;
 use HadyFayed\ReactWrapper\Widgets\ReactWidget;
+use HadyFayed\ReactWrapper\Blade\ReactDirective;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Support\Facades\File;
 
@@ -83,17 +84,19 @@ class ReactWrapperIntegrationTest extends TestCase
         $this->assertStringContainsString('window.ReactWrapper.widgets[', $script);
     }
 
-    public function test_blade_scripts_use_javascript_escaping_for_dynamic_values(): void
+    public function test_blade_views_delegate_runtime_lifecycle_to_the_adapter(): void
     {
         $widgetView = file_get_contents(__DIR__.'/../../resources/views/filament/widgets/react-widget.blade.php');
         $fieldView = file_get_contents(__DIR__.'/../../resources/views/filament/fields/react-field.blade.php');
 
         $this->assertIsString($widgetView);
         $this->assertIsString($fieldView);
-        $this->assertStringContainsString('document.getElementById(@js($containerId))', $widgetView);
-        $this->assertStringContainsString('document.getElementById(@js($containerId))', $fieldView);
-        $this->assertStringNotContainsString('document.getElementById(\'{{ $containerId }}\')', $widgetView);
-        $this->assertStringNotContainsString('document.getElementById(\'{{ $containerId }}\')', $fieldView);
+        $this->assertStringNotContainsString("@push('scripts')", $widgetView);
+        $this->assertStringNotContainsString("@push('scripts')", $fieldView);
+        $this->assertStringNotContainsString('DOMContentLoaded', $widgetView);
+        $this->assertStringNotContainsString('DOMContentLoaded', $fieldView);
+        $this->assertStringNotContainsString('@this.set', $widgetView);
+        $this->assertStringNotContainsString('@this.set', $fieldView);
     }
 
     public function test_react_fields_expose_a_state_path_for_controlled_updates(): void
@@ -101,7 +104,35 @@ class ReactWrapperIntegrationTest extends TestCase
         $view = file_get_contents(__DIR__.'/../../resources/views/filament/fields/react-field.blade.php');
 
         $this->assertIsString($view);
-        $this->assertStringContainsString('data-react-state-path="{{ $getName() }}"', $view);
+        $this->assertStringContainsString('data-react-state-path="{{ $getStatePath() }}"', $view);
+        $this->assertStringNotContainsString('@this.set', $view);
+    }
+
+    public function test_react_component_directive_parser_handles_nested_php_expressions(): void
+    {
+        $parser = new \ReflectionMethod(ReactDirective::class, 'parseDirectiveArguments');
+        $parser->setAccessible(true);
+        $directive = app(ReactDirective::class);
+
+        $arguments = $parser->invoke($directive, '(Editor, ["label" => "A, B", "meta" => ["nested" => true]], ["lazy" => true])');
+
+        $this->assertSame([
+            'Editor',
+            '["label" => "A, B", "meta" => ["nested" => true]]',
+            '["lazy" => true]',
+        ], $arguments);
+    }
+
+    public function test_react_component_directive_parser_preserves_parentheses_and_escaped_quotes(): void
+    {
+        $parser = new \ReflectionMethod(ReactDirective::class, 'parseDirectiveArguments');
+        $parser->setAccessible(true);
+        $directive = app(ReactDirective::class);
+
+        $arguments = $parser->invoke($directive, '(Editor, fn ($value) => strtoupper($value), ["title" => "Say \\"hello\\""])');
+
+        $this->assertSame('fn ($value) => strtoupper($value)', $arguments[1]);
+        $this->assertSame('["title" => "Say \\"hello\\""]', $arguments[2]);
     }
 
     public function test_blade_factory_renders_escaped_component_attributes(): void

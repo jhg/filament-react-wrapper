@@ -110,29 +110,6 @@ $assetManager->registerComponentAsset('HeavyChart', [
 - Vite dev server integration
 - Production asset bundling
 
-## React-PHP Function Mapping (90.2% Average Integration)
-
-### High Integration Functions (90-100%)
-- **Props**: 98% - Use dependency injection and method parameters
-- **Authentication**: 97% - Laravel Auth facade integration
-- **Form Handling**: 96% - Form Request classes and validation
-- **useState**: 95% - Session and cache integration
-- **Data Fetching**: 94% - HTTP Client and Eloquent queries
-
-### Implementation Examples
-```php
-// useState equivalent
-session(['react_state' => $data]);
-
-// useEffect equivalent  
-Event::listen('model.updated', fn() => dispatch(new ProcessData));
-
-// Form handling
-public function store(CreateUserRequest $request) {
-    // Automatic validation from React form
-}
-```
-
 ## Error Handling
 
 ### Component Error Boundaries
@@ -158,18 +135,6 @@ container.addEventListener('react-error', function(event) {
 ```
 
 ## Development Commands
-
-### Integration Analysis
-```bash
-# Generate integration report
-php artisan react-wrapper:integration-report --format=table
-
-# Export to markdown
-php artisan react-wrapper:integration-report --format=markdown --output=report.md
-
-# Filter by integration percentage
-php artisan react-wrapper:integration-report --min-percentage=90
-```
 
 ### Laravel About Command
 ```bash
@@ -250,14 +215,8 @@ app('react-wrapper.assets')->registerComponentAsset('ComponentName', [
 3. **Configure lazy loading** - Use `->lazy()` for performance optimization
 4. **Handle validation** - Use `->validationRules()` for form validation
 5. **Share data properly** - Use VariableShareService for complex data
-6. **Check integration reports** - Use the command to verify React-PHP integration
-7. **Follow naming conventions** - Component names should match file names
-8. **Use dependency management** - Specify component dependencies correctly
-
-## Integration Statistics
-
-- **Total Functions Mapped**: 18
-- **Average Integration**: 90.2%
+6. **Follow naming conventions** - Component names should match file names
+7. **Use dependency management** - Specify component dependencies correctly
 - **Highly Integrated (90-100%)**: 9 functions
 - **Moderately Integrated (70-89%)**: 9 functions
 - **Core React Hooks**: Fully supported with Laravel equivalents

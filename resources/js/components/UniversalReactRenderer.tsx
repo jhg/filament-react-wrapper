@@ -11,6 +11,7 @@ export interface ReactRendererProps {
   containerId: string;
   onDataChange?: (data: unknown) => void;
   onError?: (error: Error) => void;
+  onMounted?: () => void;
 }
 
 // Error boundary component
@@ -181,7 +182,14 @@ export class UniversalReactRenderer {
   private containers: Map<string, HTMLElement> = new Map();
   private metadata: Map<
     string,
-    { component: string; props: Record<string, unknown>; statePath?: string }
+    {
+      component: string;
+      props: Record<string, unknown>;
+      statePath?: string;
+      onDataChange?: (data: unknown) => void;
+      onError?: (error: Error) => void;
+      onMounted?: () => void;
+    }
   > = new Map();
 
   /**
@@ -194,6 +202,7 @@ export class UniversalReactRenderer {
     containerId,
     onDataChange,
     onError,
+    onMounted,
   }: ReactRendererProps): void {
     try {
       const container = document.getElementById(containerId);
@@ -201,7 +210,14 @@ export class UniversalReactRenderer {
         throw new Error(`Container element with ID "${containerId}" not found`);
       }
 
-      this.metadata.set(containerId, { component, props, statePath });
+      this.metadata.set(containerId, {
+        component,
+        props,
+        statePath,
+        onDataChange,
+        onError,
+        onMounted,
+      });
       container.dataset.reactComponent = component;
       if (statePath) container.dataset.reactStatePath = statePath;
       try {
@@ -213,6 +229,7 @@ export class UniversalReactRenderer {
 
       // Check if root already exists
       let root = this.roots.get(containerId);
+      const isInitialMount = !root;
 
       if (!root) {
         // Create new root only if it doesn't exist
@@ -242,6 +259,10 @@ export class UniversalReactRenderer {
           statePath={statePath}
         />
       );
+
+      if (isInitialMount) {
+        onMounted?.();
+      }
     } catch (error) {
       console.error('Error rendering React component:', error);
       onError?.(error as Error);
@@ -277,6 +298,9 @@ export class UniversalReactRenderer {
       props: nextProps,
       statePath: metadata.statePath,
       containerId,
+      onDataChange: metadata.onDataChange,
+      onError: metadata.onError,
+      onMounted: metadata.onMounted,
     });
   }
 

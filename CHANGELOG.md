@@ -119,9 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🛠️ Developer Experience
 
 #### Console Commands
-- **NEW**: `react-wrapper:integration-report` command with multiple output formats
 - **NEW**: Integration statistics in Laravel's `php artisan about` command
-- **NEW**: Detailed function mapping analysis and export
 
 #### Blade Integration
 - **NEW**: Enhanced Blade directives: `@react`, `@reactComponent`, `@reactProps`, `@reactConfig`
@@ -156,7 +154,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `react-wrapper.assets` (AssetManager)
   - `react-wrapper.variables` (VariableShareService)
   - `react-wrapper.filament` (FilamentIntegration)
-  - `react-wrapper.mapping` (ReactPhpFunctionMap)
 
 ### ⚡ Performance Improvements
 - **Reduced bundle size** by 60% through lazy loading

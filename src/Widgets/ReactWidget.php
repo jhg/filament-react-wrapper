@@ -189,11 +189,12 @@ class ReactWidget extends Widget
         $this->shareWidgetData();
 
         // Emit update to frontend
-        $this->dispatch('widget-refreshed', [
-            'widgetId' => $this->getId(),
-            'containerId' => $this->getContainerId(),
-            'data' => $this->getData(),
-        ]);
+        $this->dispatch(
+            'widget-refreshed',
+            widgetId: $this->getId(),
+            containerId: $this->getContainerId(),
+            data: $this->getData(),
+        );
     }
 
     public function updated($property): void

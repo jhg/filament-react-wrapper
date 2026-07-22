@@ -1,28 +1,9 @@
 {
   "name": "@hadyfayed/filament-react-wrapper",
   "version": "3.2.0",
-  "description": "Enterprise React integration for Laravel/Filament - Smart asset loading, 90%+ React-PHP function mapping, no-plugin Filament integration",
+  "private": true,
+  "description": "Build toolchain for the hadyfayed/filament-react-wrapper Composer package",
   "type": "module",
-  "main": "dist/react-wrapper/index.es.js",
-  "module": "dist/react-wrapper/index.es.js",
-  "types": "dist/react-wrapper/types/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/react-wrapper/index.es.js",
-      "types": "./dist/react-wrapper/types/index.d.ts"
-    },
-    "./package.json": "./package.json"
-  },
-  "files": [
-    "dist",
-    "config",
-    "resources",
-    "src",
-    "tests",
-    "scripts",
-    "*.md",
-    "LICENSE*"
-  ],
   "scripts": {
     "build": "node scripts/build.js --target=es",
     "build:laravel": "node scripts/build.js --target=laravel",
@@ -41,32 +22,9 @@
     "lint:check": "eslint .",
     "format:check": "prettier --check \"resources/**/*.{ts,tsx}\""
   },
-  "keywords": [
-    "laravel",
-    "filament",
-    "react",
-    "components",
-    "integration",
-    "php",
-    "lazy-loading",
-    "asset-management",
-    "state-sharing",
-    "enterprise",
-    "typescript",
-    "blade-directives",
-    "form-fields",
-    "widgets",
-    "no-plugin"
-  ],
+  "keywords": ["laravel", "filament", "react", "livewire", "form-fields", "widgets"],
   "author": "Hady Fayed <hadyfayed@gmail.com>",
   "license": "MIT",
-  "peerDependencies": {
-    "react": "^18.0.0 || ^19.0.0",
-    "react-dom": "^18.0.0 || ^19.0.0"
-  },
-  "optionalDependencies": {
-    "zustand": "^4.5.7"
-  },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@testing-library/jest-dom": "^6.9.1",

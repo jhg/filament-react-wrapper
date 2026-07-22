@@ -9,6 +9,11 @@ export interface FilamentBridgeConfig {
   livewireComponentId?: string;
 }
 
+type LivewireWire = {
+  call?: (method: string, ...args: unknown[]) => unknown;
+  $call?: (method: string, ...args: unknown[]) => unknown;
+};
+
 export class FilamentBridge {
   private config: FilamentBridgeConfig;
   private eventListeners: Map<string, Set<(data: unknown) => void>> = new Map();
@@ -35,7 +40,10 @@ export class FilamentBridge {
     try {
       const livewire = this.getLivewireComponent();
       if (livewire) {
-        return await Promise.resolve(livewire.call(method, ...args));
+        const call = livewire.$call ?? livewire.call;
+        if (call) {
+          return await Promise.resolve(call.call(livewire, method, ...args));
+        }
       }
 
       const controller = new window.AbortController();
@@ -162,8 +170,7 @@ export class FilamentBridge {
     return token || '';
   }
 
-  private getLivewireComponent():
-    { call(method: string, ...args: unknown[]): unknown } | undefined {
+  private getLivewireComponent(): LivewireWire | undefined {
     const id = this.config.livewireComponentId;
     if (
       !id ||

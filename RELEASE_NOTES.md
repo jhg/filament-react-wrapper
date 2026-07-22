@@ -101,15 +101,12 @@
 
 **Basic Update:**
 ```bash
-npm update @hadyfayed/filament-react-wrapper
 composer update hadyfayed/filament-react-wrapper
 ```
 
 **JavaScript setup:**
 ```bash
-php artisan vendor:publish --tag=react-wrapper
-npm install
-npm run build
+php artisan filament-react:install
 ```
 
 ### 🎯 What's Next
@@ -141,7 +138,6 @@ This release focuses on enhanced developer experience and better integration wit
 
 ### Version 3.0.0 - Enterprise React Integration
 - Complete rewrite for enterprise-grade performance
-- 90%+ React-PHP function mapping
 - Smart asset management with 60% smaller bundles
 - No-plugin Filament integration
 - Comprehensive documentation and AI agent guide

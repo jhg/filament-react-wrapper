@@ -89,6 +89,12 @@ The registered React field receives a controlled contract: `value`,
 The TypeScript helpers are `ReactFieldProps<T>` and the optional
 `useReactField()` hook.
 
+The bridge uses Filament’s complete `getStatePath()` value, not only the field
+name. It resolves the nearest Livewire `wire:id`, calls `$wire.$set()` on React
+changes, and uses `$wire.$watch()` for server-to-React updates. Because this
+logic lives in the runtime MutationObserver, fields added after initial page
+load are supported too.
+
 ## ReactWidget
 
 `ReactWidget` renders a React component inside a Filament widget. Use the
@@ -250,12 +256,8 @@ asset with ID `react-wrapper` under `hadyfayed/filament-react-wrapper`.
 php artisan filament-react:install [--dev] [--demo] [--zustand] [--force] [--no-auto-assets]
 php artisan filament-react:assets [--force]
 php artisan filament-react:component Name [--category=general] [--lazy] [--widget] [--field] [--force]
-php artisan react-wrapper:integration-report [--format=table|json|markdown] [--category=...] [--min-percentage=...] [--output=...]
 ```
 
 `filament-react:component` creates the TSX component under
 `resources/js/components/`. `--widget` and `--field` additionally generate
 Filament PHP classes. Use it in `--dev` mode.
-
-`react-wrapper:integration-report` reports the PHP/React mappings and current
-Filament integration status; it can print a table, JSON, or Markdown output.

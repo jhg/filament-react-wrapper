@@ -11,13 +11,18 @@ interface GlobalStateManagerInterface {
 
 declare global {
   interface LivewireComponent {
-    call(method: string, ...args: unknown[]): unknown;
-    set(path: string, value: unknown): unknown;
-    get(path: string): unknown;
+    call?: (method: string, ...args: unknown[]) => unknown;
+    set?: (path: string, value: unknown) => unknown;
+    get?: (path: string) => unknown;
+    $call?: (method: string, ...args: unknown[]) => unknown;
+    $set?: (path: string, value: unknown) => unknown;
+    $get?: (path: string) => unknown;
+    $watch?: (path: string, callback: (value: unknown) => void) => (() => void) | void;
   }
 
   interface LivewireRuntime {
     find(id: string): LivewireComponent | undefined;
+    hook?: (name: string, callback: (payload: unknown) => void) => void;
   }
   interface Window {
     // Namespaced globals for better organization

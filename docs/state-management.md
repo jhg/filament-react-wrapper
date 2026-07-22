@@ -5,7 +5,12 @@ for state that deliberately crosses component boundaries, plus browser
 persistence. Reusable components should prefer props, `useState`, and their
 own context unless they explicitly need one of these integration boundaries.
 
-## React provider
+## React provider (legacy compatibility)
+
+`StateManagerProvider` and its hooks are retained for existing applications.
+New components should prefer normal React state or an application-owned store;
+Filament-bound components should use `EnhancedStateProvider` and
+`useFilamentState` below.
 
 ```tsx
 import { StateManagerProvider, useStatePath } from '@react-wrapper';

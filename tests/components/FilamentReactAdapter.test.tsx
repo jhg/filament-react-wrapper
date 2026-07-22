@@ -5,6 +5,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 describe('FilamentReactAdapter', () => {
   afterEach(() => {
     FilamentReactAdapter.cleanup();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+    delete window.Livewire;
   });
 
   it('creates a form field container with serialised integration data', () => {
@@ -21,41 +24,68 @@ describe('FilamentReactAdapter', () => {
     expect(JSON.parse(field.dataset.reactProps!)).toEqual({ required: true });
   });
 
-  it('updates active containers from a Livewire event', () => {
-    document.body.innerHTML =
-      '<div id="profile-field" data-react-component="ProfileField" data-react-state-path="profile.name"></div>';
-    const hasActive = vi.spyOn(universalReactRenderer, 'hasActiveComponent').mockReturnValue(true);
+  it('syncs React changes to the real Livewire component and watches server changes', () => {
+    vi.useFakeTimers();
+    const set = vi.fn();
+    const watch = vi.fn((_path: string, callback: (value: unknown) => void) => {
+      callback('From Livewire');
+      return vi.fn();
+    });
+    window.Livewire = {
+      find: vi.fn(() => ({
+        call: vi.fn(),
+        set: vi.fn(),
+        get: vi.fn(),
+        $set: set,
+        $watch: watch,
+      })),
+    };
+
+    let rendererProps: Parameters<typeof universalReactRenderer.render>[0] | undefined;
+    vi.spyOn(universalReactRenderer, 'render').mockImplementation(props => {
+      rendererProps = props;
+      props.onMounted?.();
+    });
     const updateProps = vi
       .spyOn(universalReactRenderer, 'updateProps')
       .mockImplementation(() => {});
+    const loaded = vi.fn();
 
-    FilamentReactAdapter.handleLivewireUpdate(
-      new CustomEvent('livewire:update', {
-        detail: { component: 'ProfileField', statePath: 'profile.name', data: 'Ada' },
-      })
-    );
-
-    expect(hasActive).toHaveBeenCalledWith('profile-field');
-    expect(updateProps).toHaveBeenCalledWith('profile-field', 'Ada');
-  });
-
-  it('scans new containers and tolerates malformed props', () => {
-    vi.useFakeTimers();
-    const render = vi.spyOn(universalReactRenderer, 'render').mockImplementation(() => {});
     document.body.innerHTML =
-      `<div id="valid" data-react-component="ProfileField" data-react-props='{"enabled":true}'></div>` +
-      '<div id="invalid" data-react-component="ProfileField" data-react-props="not-json"></div>';
+      '<div wire:id="lw-1"><div id="profile-field" data-react-component="ProfileField" ' +
+      'data-react-state-path="data.profile.name" data-react-props="{}"></div></div>';
+    document.getElementById('profile-field')!.addEventListener('react-loaded', loaded);
 
     FilamentReactAdapter.initializeComponents();
     vi.runAllTimers();
+    rendererProps?.onDataChange?.('From React');
+
+    expect(window.Livewire.find).toHaveBeenCalledWith('lw-1');
+    expect(set).toHaveBeenCalledWith('data.profile.name', 'From React');
+    expect(watch).toHaveBeenCalledWith('data.profile.name', expect.any(Function));
+    expect(updateProps).toHaveBeenCalledWith('profile-field', { value: 'From Livewire' });
+    expect(loaded).toHaveBeenCalledTimes(1);
+  });
+
+  it('mounts dynamically added containers and tolerates malformed props', async () => {
+    vi.useFakeTimers();
+    const render = vi.spyOn(universalReactRenderer, 'render').mockImplementation(() => {});
+    document.body.innerHTML = '<div id="root"></div>';
+
+    FilamentReactAdapter.initializeComponents();
+    document.getElementById('root')!.innerHTML =
+      `<div id="valid" data-react-component="ProfileField" data-react-props='{"enabled":true}'></div>` +
+      '<div id="invalid" data-react-component="ProfileField" data-react-props="not-json"></div>';
+    await Promise.resolve();
+    vi.runAllTimers();
+    await Promise.resolve();
 
     expect(render).toHaveBeenCalledTimes(2);
     expect(document.getElementById('valid')?.dataset.reactRendered).toBe('true');
     expect(document.getElementById('invalid')?.dataset.reactRendered).toBe('true');
-    vi.useRealTimers();
   });
 
-  it('skips unnamed containers and reacts to Livewire navigation', () => {
+  it('removes the old livewire:update dependency and rescans after navigation', () => {
     vi.useFakeTimers();
     const render = vi.spyOn(universalReactRenderer, 'render').mockImplementation(() => {});
     document.body.innerHTML =
@@ -70,10 +100,5 @@ describe('FilamentReactAdapter', () => {
     vi.advanceTimersByTime(100);
     vi.runOnlyPendingTimers();
     expect(render).toHaveBeenCalledTimes(2);
-    document.dispatchEvent(
-      new CustomEvent('livewire:update', { detail: { component: 'ProfileField', data: {} } })
-    );
-    window.dispatchEvent(new Event('beforeunload'));
-    vi.useRealTimers();
   });
 });
