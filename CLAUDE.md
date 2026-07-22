@@ -22,11 +22,10 @@ User-facing entry points:
 |---|---|
 | `index.tsx` | Public exports and bootstrap. |
 | `SimpleRegistration.tsx` | Blessed API: `defineComponents`, `registerComponent`, `mountIsland`. |
-| `ReactComponentRegistry.tsx` | Internal registry. Lower-level API, kept for compatibility. |
+| `ReactComponentRegistry.tsx` | Internal registry used by the renderer and registration helpers. |
 | `UniversalReactRenderer.tsx` | Renders registry components from DOM metadata. Adapts controlled field props (`value`/`onChange`). |
 | `FilamentReactAdapter.tsx` | MutationObserver-based mounting and React ↔ Livewire bridge. Resolves `wire:id`, uses `$set`/`set`, subscribes with `$watch`. Handles `livewire:navigated` and `livewire:init`. |
 | `EnhancedStateManager.tsx` | Owns `useFilamentState`. Used by generated stubs. **Do not remove.** |
-| `StateManager.tsx` | Older state API. Keep for compatibility; prefer `EnhancedStateManager` for new code. |
 | `useReactField.ts` | Hook: controlled `value`/`setValue` contract for shared field components. |
 
 ### PHP (`src`)
@@ -66,8 +65,6 @@ not produce a publishable NPM artifact.
   and handles XSS escaping.
 - Keep `ReactWrapperMiddleware` — it is the only mechanism that delivers the
   runtime to non-Filament Blade pages.
-- Keep `StateManager.tsx` for backward compatibility, but prefer
-  `EnhancedStateManager` in new examples.
 
 ### Do not
 

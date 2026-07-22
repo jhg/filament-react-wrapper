@@ -5,7 +5,7 @@
 ```tsx
 import { codeSplittingService } from '@react-wrapper';
 
-const Component = await codeSplittingService.loadComponent('StateManager');
+const Component = await codeSplittingService.loadComponent('EnhancedStateManager');
 ```
 
 The service chooses the first matching built-in strategy: `route-based`, `feature-based`, `vendor-based`, `size-based`, `critical-path`, and finally `default`. Metadata can select a strategy:

@@ -2,14 +2,6 @@
 import { componentRegistry, registerComponents } from './components/ReactComponentRegistry';
 import { universalReactRenderer } from './components/UniversalReactRenderer';
 import {
-  StateManagerProvider,
-  useStateManager,
-  useStatePath,
-  useGlobalStatePath,
-  withStateManager,
-  globalStateManager,
-} from './components/StateManager';
-import {
   statePersistenceService,
   usePersistedState,
   type StatePersistenceConfig,
@@ -48,7 +40,7 @@ import { registerFilamentReactGlobals, setWindowGlobal } from './utils/globals';
 // Import the Filament adapter to ensure it's loaded
 import './components/adapters/FilamentReactAdapter';
 
-// Export all functionality (backward compatibility)
+// Export the public runtime API
 export {
   // Registry
   componentRegistry,
@@ -56,14 +48,6 @@ export {
 
   // Renderer
   universalReactRenderer,
-
-  // State Management (original)
-  StateManagerProvider,
-  useStateManager,
-  useStatePath,
-  useGlobalStatePath,
-  withStateManager,
-  globalStateManager,
 
   // Enhanced State Management
   EnhancedStateProvider,
@@ -118,7 +102,6 @@ if (typeof window !== 'undefined') {
     ReactWrapper: {
       componentRegistry,
       universalReactRenderer,
-      globalStateManager,
       statePersistenceService,
       devTools,
       codeSplittingService,
@@ -138,7 +121,6 @@ if (typeof window !== 'undefined') {
 const ReactWrapper: ReactWrapperAPI = {
   componentRegistry,
   universalReactRenderer,
-  globalStateManager,
   statePersistenceService,
   devTools,
   codeSplittingService,

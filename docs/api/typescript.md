@@ -6,8 +6,7 @@ Import public APIs from the package alias:
 import {
     registerComponent,
     defineComponents,
-    useStatePath,
-    useGlobalStatePath,
+    useFilamentState,
     useFilamentBridge,
 } from '@react-wrapper';
 ```
@@ -43,26 +42,29 @@ advanced registry API. The registry also supports `get`, `has`, `create`,
 
 ```tsx
 import {
-    StateManagerProvider,
-    useStateManager,
-    useStatePath,
-    useGlobalStatePath,
-    globalStateManager,
+    EnhancedStateProvider,
+    useFilamentState,
 } from '@react-wrapper';
 
 function Editor() {
-    const [title, setTitle] = useStatePath('document.title', 'Untitled');
+    const [title, setTitle] = useFilamentState('document.title', 'Untitled');
     return <input value={title} onChange={event => setTitle(event.target.value)} />;
+}
+
+export function App() {
+    return (
+        <EnhancedStateProvider config={{ strategy: 'context', persistence: false, devtools: false }}>
+            <Editor />
+        </EnhancedStateProvider>
+    );
 }
 ```
 
-`StateManagerProvider` exposes `state`, `setState`, `updateState`, `getState`, `resetState`, `batchUpdate`, and `subscribe`. `useStateManager` must be rendered below a provider. `globalStateManager` provides the same path operations for cross-component communication.
-
-`useStatePath()` is scoped to a provider. Use `useGlobalStatePath()` only when
-independent React roots intentionally share a singleton store. Reusable
-components should normally use regular React state and props instead.
-
-The lower-level classes are `StandardStateManager`, `ValidatedStateManager`, and `PersistentStateManager` from `services/StateManagerService`. Shared immutable path helpers live in `utils/state`.
+`useFilamentState()` is scoped to the nearest `EnhancedStateProvider` and is
+intended for shared client-side state below one React tree. It does not replace
+Livewire's server-authoritative state. Reusable components should normally use
+React state, props, and callbacks instead. `StateManagerFactory` supports the
+current context strategy and an optional Zustand strategy with context fallback.
 
 For optional enhanced strategies:
 
@@ -97,8 +99,7 @@ service.
 
 ## Filament field contract
 
-Fields expose a regular controlled React API while keeping the old props
-available for compatibility:
+Fields expose a regular controlled React API:
 
 ```tsx
 import type { ReactFieldProps } from '@react-wrapper';

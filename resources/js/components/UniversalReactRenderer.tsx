@@ -102,14 +102,11 @@ const UniversalReactWrapper: React.FC<{
         onDataChange,
       } as Record<string, unknown>;
 
-      // Fields expose a normal controlled React contract while retaining the
-      // legacy initialData/onDataChange props for existing components.
+      // Fields expose a normal controlled React contract.
       const isField =
         componentProps.isField === true || typeof componentProps.fieldName === 'string';
       if (isField) {
-        props.value = Object.prototype.hasOwnProperty.call(componentProps, 'value')
-          ? componentProps.value
-          : componentProps.initialData;
+        props.value = componentProps.value;
         props.onChange = onDataChange ?? componentProps.onChange;
       }
 

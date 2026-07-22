@@ -34,7 +34,6 @@ export default defineConfig({
                     'react-dom': 'ReactDOM'
                 },
                 manualChunks: {
-                    'state-management': ['./resources/js/components/StateManager.tsx'],
                     'component-system': ['./resources/js/components/ReactComponentRegistry.tsx']
                 },
                 chunkFileNames: 'chunks/[name]-[hash].js',

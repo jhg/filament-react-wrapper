@@ -4,23 +4,17 @@
 
 // Re-export key interfaces
 export type { IComponentDefinition, IComponentRegistry } from '../interfaces/IComponentRegistry';
-export type {
-  IStateManagerState,
-  IStateManager,
-  IStatePersistence,
-} from '../interfaces/IStateManager';
 
 // Import interfaces
 import type { IComponentRegistry } from '../interfaces/IComponentRegistry';
 import type { ReactComponent } from '../interfaces/IComponentRegistry';
-import type { IStateManager, IStatePersistence } from '../interfaces/IStateManager';
+import type { StatePersistenceService } from '../services/StatePersistenceService';
 
 // Main API interface with proper typing
 export interface ReactWrapperAPI {
   readonly componentRegistry: IComponentRegistry;
   readonly universalReactRenderer: IUniversalRenderer;
-  readonly globalStateManager: IStateManager;
-  readonly statePersistenceService: IStatePersistence;
+  readonly statePersistenceService: StatePersistenceService;
   readonly devTools: IDevTools;
   readonly codeSplittingService: ICodeSplittingService;
   readonly componentVersioningService: IVersioningService;

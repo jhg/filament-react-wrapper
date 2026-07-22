@@ -302,31 +302,30 @@ function Counter() {
 }
 ```
 
-Use the package state helpers only when state is intentionally shared by
-several mounted components:
+Use the package state helpers only when the state intentionally crosses a
+React integration boundary. For ordinary UI state, use React's own hooks:
 
 ```tsx
-import { StateManagerProvider, useStatePath } from '@react-wrapper';
+import { EnhancedStateProvider, useFilamentState } from '@react-wrapper';
 
 function Counter() {
-  const [count, setCount] = useStatePath('counter', 0);
+  const [count, setCount] = useFilamentState('counter', 0);
   return <button onClick={() => setCount(value => value + 1)}>{count}</button>;
 }
 
 export function App() {
   return (
-    <StateManagerProvider initialState={{ counter: 0 }}>
+    <EnhancedStateProvider config={{ strategy: 'context', persistence: false, devtools: false }}>
       <Counter />
-    </StateManagerProvider>
+    </EnhancedStateProvider>
   );
 }
 ```
 
-`useStatePath()` shares values between all components rendered below the same
-`StateManagerProvider`; it stays entirely in React and does not go through
-Livewire. It is not required by reusable components. For React roots that do
-not share a provider, use `useGlobalStatePath()` or the lower-level exported
-`globalStateManager` explicitly.
+`useFilamentState()` shares values below the nearest
+`EnhancedStateProvider`; it stays in React and does not replace Livewire's
+server-authoritative form state. Reusable components should normally receive
+state through props and callbacks instead of depending on this provider.
 
 To persist a value between page loads:
 
@@ -372,8 +371,9 @@ export function RichEditor({ value, onChange, errors, disabled }: ReactFieldProp
 ```
 
 `useReactField()` is available when a shared component wants a setter with the
-same functional-update ergonomics as React. Existing `initialData` and
-`onDataChange` components continue to work.
+same functional-update ergonomics as React. Generic `@react` islands can use
+`onDataChange` when they intentionally expose their own callback contract;
+Filament fields use the controlled `value`/`onChange` contract above.
 
 React components can report client-side validation without knowing about
 Livewire:
@@ -394,12 +394,10 @@ provide one stable public client API for mutating that bag. Filament/PHP
 validation remains the source of truth when the form is validated or saved,
 and server-provided errors replace the React-local errors on the next render.
 
-For new code, use normal React state for local data, `useFilamentState` for
-Filament-aware state, and `usePersistedState` for explicitly browser-persisted
-preferences. `useStateManager`, `useStatePath`, and `useGlobalStatePath` remain
-available for compatibility and deliberate cross-root state. See [state
-management](docs/state-management.md) for provider scope, storage options,
-debouncing, and persistence ownership.
+Use normal React state for local data, `useFilamentState` for deliberately
+shared React state below an `EnhancedStateProvider`, and `usePersistedState`
+for explicitly browser-persisted preferences. See [state management](docs/state-management.md)
+for provider scope, storage options, debouncing, and persistence ownership.
 
 ## Component registry and advanced services
 

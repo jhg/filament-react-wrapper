@@ -3,11 +3,11 @@ import { act, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   componentRegistry,
-  type ReactComponentDefinition,
 } from '../../resources/js/components/ReactComponentRegistry';
+import type { IComponentDefinition } from '../../resources/js/interfaces/IComponentRegistry';
 import { UniversalReactRenderer } from '../../resources/js/components/UniversalReactRenderer';
 
-const definition: ReactComponentDefinition = {
+const definition: IComponentDefinition = {
   name: 'RendererProbe',
   component: ({ label }: { label?: string }) => <span>{label || 'empty'}</span>,
   isAsync: false,

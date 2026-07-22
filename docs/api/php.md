@@ -84,8 +84,9 @@ rules when the field is required.
 
 The registered React field receives a controlled contract: `value`,
 `onChange`, `errors`, `required`, `disabled`, and the field metadata. Calling
-`onChange(nextValue)` updates the Filament field state. The legacy
-`initialData`/`onDataChange` props remain available for existing components.
+`onChange(nextValue)` updates the Filament field state. Generic `@react` islands
+may instead define an explicit
+`onDataChange` callback when they need to report custom data to Livewire.
 The TypeScript helpers are `ReactFieldProps<T>` and the optional
 `useReactField()` hook.
 

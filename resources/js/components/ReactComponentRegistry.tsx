@@ -2,8 +2,6 @@ import { universalReactRenderer } from './UniversalReactRenderer';
 import {
   IComponentRegistry,
   IComponentDefinition,
-  IComponentConfig,
-  IComponentMetadata,
   IComponentMiddleware,
   IComponentContext,
   IHookManager,
@@ -12,16 +10,6 @@ import {
   ComponentCallback,
 } from '../interfaces/IComponentRegistry';
 import { EventSystem } from '../services/EventSystem';
-
-// Type aliases for backward compatibility
-export type ReactComponentDefinition = IComponentDefinition;
-export type ComponentConfig = IComponentConfig;
-export type ComponentMetadata = IComponentMetadata;
-export type ComponentMiddleware = IComponentMiddleware;
-export type ComponentContext = IComponentContext;
-export type HookManager = IHookManager;
-
-// Legacy event system - replaced by EventSystem service
 
 // Enhanced React Component Registry with SOLID principles
 class ReactComponentRegistry implements IComponentRegistry {
@@ -36,7 +24,7 @@ class ReactComponentRegistry implements IComponentRegistry {
   /**
    * Register a React component with enhanced features
    */
-  register(definition: ReactComponentDefinition): void {
+  register(definition: IComponentDefinition): void {
     // Emit before registration event
     this.events.emit('component:registering', { definition });
 
@@ -58,7 +46,7 @@ class ReactComponentRegistry implements IComponentRegistry {
 
     // Apply global middleware
     for (const middleware of this.middleware) {
-      const context: ComponentContext = {
+      const context: IComponentContext = {
         registry: this,
         hooks: this.createHookManager(),
         config: definition.config || {},
@@ -111,7 +99,7 @@ class ReactComponentRegistry implements IComponentRegistry {
   /**
    * Get a registered component by name
    */
-  get(name: string): ReactComponentDefinition | undefined {
+  get(name: string): IComponentDefinition | undefined {
     const definition = this.components.get(name);
     if (definition) {
       // Emit component access event
@@ -137,7 +125,7 @@ class ReactComponentRegistry implements IComponentRegistry {
     let component = definition.component;
     if (definition.config?.middleware) {
       for (const middleware of definition.config.middleware) {
-        const context: ComponentContext = {
+        const context: IComponentContext = {
           registry: this,
           hooks: this.createHookManager(),
           config: definition.config,
@@ -192,7 +180,7 @@ class ReactComponentRegistry implements IComponentRegistry {
   /**
    * Add global middleware
    */
-  addMiddleware(middleware: ComponentMiddleware): void {
+  addMiddleware(middleware: IComponentMiddleware): void {
     this.middleware.push(middleware);
   }
 
@@ -203,12 +191,12 @@ class ReactComponentRegistry implements IComponentRegistry {
     category?: string;
     tag?: string;
     name?: RegExp;
-  }): Map<string, ReactComponentDefinition> {
+  }): Map<string, IComponentDefinition> {
     if (!filter) {
       return new Map(this.components);
     }
 
-    const filtered = new Map<string, ReactComponentDefinition>();
+    const filtered = new Map<string, IComponentDefinition>();
 
     this.components.forEach((definition, name) => {
       let include = true;
@@ -314,7 +302,7 @@ class ReactComponentRegistry implements IComponentRegistry {
   }
 
   /**
-   * Mount a component to a DOM container (for Blade template compatibility)
+   * Mount a component to a DOM container for Blade template integration.
    */
   mount(componentName: string, containerId: string, props: Record<string, unknown> = {}): void {
     try {
@@ -346,7 +334,7 @@ class ReactComponentRegistry implements IComponentRegistry {
   /**
    * Create hook manager for component context
    */
-  private createHookManager(): HookManager {
+  private createHookManager(): IHookManager {
     return {
       addHook: (event: string, callback: ComponentCallback, priority?: number) => {
         this.events.on(event, callback, priority);
@@ -365,7 +353,7 @@ class ReactComponentRegistry implements IComponentRegistry {
 export const componentRegistry = new ReactComponentRegistry();
 
 // Helper function to register multiple components at once
-export function registerComponents(definitions: ReactComponentDefinition[]): void {
+export function registerComponents(definitions: IComponentDefinition[]): void {
   definitions.forEach(definition => {
     componentRegistry.register(definition);
   });

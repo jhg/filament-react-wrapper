@@ -6,8 +6,6 @@ export interface ReactFieldProps<T> {
   value: T;
   /** Controlled-input callback. The wrapper forwards it to Filament. */
   onChange: (value: T) => void;
-  /** Backwards-compatible name used by older package versions. */
-  initialData?: T;
   fieldName?: string;
   fieldId?: string;
   livewireComponentId?: string;

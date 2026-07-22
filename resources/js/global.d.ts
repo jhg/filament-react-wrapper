@@ -38,7 +38,6 @@ declare global {
     WorkflowCanvas?: unknown;
     workflowDataSync?: (statePath: string, data: unknown) => void;
     __REACT_WRAPPER_DEV_TOOLS__?: unknown;
-    globalStateManager?: unknown;
     statePersistenceService?: unknown;
   }
 

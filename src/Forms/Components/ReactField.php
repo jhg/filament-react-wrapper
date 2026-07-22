@@ -136,10 +136,8 @@ class ReactField extends Field
         
         // Add field-specific props
         $fieldProps = [
-            // React-first controlled field contract. Keep initialData and
-            // onDataChange compatibility for existing components.
+            // React-first controlled field contract.
             'value' => $currentData,
-            'initialData' => $currentData ?? [],
             'fieldName' => $this->getName(),
             'fieldId' => $this->getId(),
             'livewireComponentId' => $livewireComponentId,
@@ -189,8 +187,8 @@ class ReactField extends Field
             $messageBag = $sharedErrors->getBag('default');
             $errors = $messageBag->get($statePath);
 
-            // Filament 3 integrations may expose the short field name in
-            // their legacy container error helper. Keep that fallback while
+            // Some Filament integrations expose the short field name through
+            // the container error helper. Keep that fallback while
             // preferring the real, fully-qualified state path.
             if (empty($errors) && $this->getName() !== $statePath && $this->getContainer() && method_exists($this->getContainer(), 'getErrors')) {
                 $legacyErrors = $this->getContainer()->getErrors($this->getName());

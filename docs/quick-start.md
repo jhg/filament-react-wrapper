@@ -101,18 +101,18 @@ unless it implements this contract.
 ## 4. Add local state
 
 ```tsx
-import { StateManagerProvider, useStatePath } from '@react-wrapper';
+import { EnhancedStateProvider, useFilamentState } from '@react-wrapper';
 
 function Counter() {
-    const [count, setCount] = useStatePath('counter', 0);
+    const [count, setCount] = useFilamentState('counter', 0);
     return <button onClick={() => setCount(value => value + 1)}>{count}</button>;
 }
 
 export function App() {
     return (
-        <StateManagerProvider initialState={{ counter: 0 }}>
+        <EnhancedStateProvider config={{ strategy: 'context', persistence: false, devtools: false }}>
             <Counter />
-        </StateManagerProvider>
+        </EnhancedStateProvider>
     );
 }
 ```

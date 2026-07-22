@@ -214,7 +214,7 @@ export const useFilamentBridge = (config?: FilamentBridgeConfig) => {
   };
 };
 
-// MingleJS-style $wire compatibility
+// React-facing Livewire shorthand.
 export const use$wire = () => {
   return {
     $wire: {
