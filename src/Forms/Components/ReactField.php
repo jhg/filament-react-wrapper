@@ -4,6 +4,7 @@ namespace HadyFayed\ReactWrapper\Forms\Components;
 
 use Filament\Forms\Components\Field;
 use HadyFayed\ReactWrapper\Components\BaseReactComponent;
+use Illuminate\Support\ViewErrorBag;
 
 class ReactField extends Field
 {
@@ -181,16 +182,32 @@ class ReactField extends Field
 
     public function getValidationErrors(): array
     {
-        $errors = [];
+        $statePath = $this->getStatePath();
+        $sharedErrors = view()->shared('errors');
+
+        if ($sharedErrors instanceof ViewErrorBag) {
+            $messageBag = $sharedErrors->getBag('default');
+            $errors = $messageBag->get($statePath);
+
+            // Filament 3 integrations may expose the short field name in
+            // their legacy container error helper. Keep that fallback while
+            // preferring the real, fully-qualified state path.
+            if (empty($errors) && $this->getName() !== $statePath && $this->getContainer() && method_exists($this->getContainer(), 'getErrors')) {
+                $legacyErrors = $this->getContainer()->getErrors($this->getName());
+                $errors = $legacyErrors ? $legacyErrors->toArray() : [];
+            }
+
+            return array_values(array_map('strval', $errors));
+        }
 
         if ($this->getContainer() && method_exists($this->getContainer(), 'getErrors')) {
-            $fieldErrors = $this->getContainer()->getErrors($this->getName());
+            $fieldErrors = $this->getContainer()->getErrors($statePath);
             if ($fieldErrors) {
-                $errors = $fieldErrors->toArray();
+                return array_values(array_map('strval', $fieldErrors->toArray()));
             }
         }
 
-        return $errors;
+        return [];
     }
 
 

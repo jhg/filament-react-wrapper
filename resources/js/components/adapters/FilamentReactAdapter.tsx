@@ -20,6 +20,7 @@ export class FilamentReactAdapter {
   static scanTimeout: number | null = null;
   static mutationObserver: MutationObserver | null = null;
   private static containerCleanups = new Map<string, Cleanup>();
+  private static renderedProps = new Map<string, string>();
   private static lifecycleListenersRegistered = false;
   private static livewireHooksRegistered = false;
 
@@ -38,6 +39,8 @@ export class FilamentReactAdapter {
   }
 
   private static scanAndRenderComponents(): void {
+    this.syncRenderedComponents();
+
     const containers = document.querySelectorAll<HTMLElement>(
       '[data-react-component]:not([data-react-rendered])'
     );
@@ -80,6 +83,7 @@ export class FilamentReactAdapter {
     if (propsData) {
       try {
         props = JSON.parse(propsData) as Record<string, unknown>;
+        this.renderedProps.set(element.id, propsData);
       } catch (error) {
         console.warn(`Invalid JSON in data-react-props for component "${componentName}":`, error);
       }
@@ -109,6 +113,7 @@ export class FilamentReactAdapter {
           onMounted: () => {
             this.removeLoadingIndicator(element);
             this.setupLivewireBridge(element, statePath);
+            this.setupValidationBridge(element);
             this.setupWidgetPolling(element);
             element.dispatchEvent(
               new CustomEvent('react-loaded', {
@@ -186,6 +191,30 @@ export class FilamentReactAdapter {
     this.mutationObserver.observe(document.body, { childList: true, subtree: true });
   }
 
+  /**
+   * Livewire can morph the field wrapper while preserving the React island
+   * because it is marked with wire:ignore. Synchronize props changed by that
+   * morph so server validation errors and other server-side props reach React.
+   */
+  private static syncRenderedComponents(): void {
+    document
+      .querySelectorAll<HTMLElement>('[data-react-component][data-react-rendered]')
+      .forEach(element => {
+        const propsData = element.dataset.reactProps;
+        if (!propsData || this.renderedProps.get(element.id) === propsData) return;
+
+        try {
+          const props = JSON.parse(propsData) as Record<string, unknown>;
+          this.renderedProps.set(element.id, propsData);
+          universalReactRenderer.updateProps(element.id, props);
+        } catch (error) {
+          console.warn(
+            `Invalid JSON in data-react-props for component "${element.dataset.reactComponent}":`,
+            error
+          );
+        }
+      });
+  }
   private static registerLifecycleListeners(): void {
     if (this.lifecycleListenersRegistered || typeof window === 'undefined') return;
     this.lifecycleListenersRegistered = true;
@@ -247,19 +276,79 @@ export class FilamentReactAdapter {
   private static setupLivewireBridge(element: HTMLElement, statePath?: string): void {
     this.containerCleanups.get(element.id)?.();
     const cleanups: Cleanup[] = [];
+    let active = true;
     const component = statePath ? this.getLivewireComponent(element) : undefined;
     const wire = component && this.getWireProxy(component);
 
     if (wire && statePath && wire.$watch) {
       const cleanup = wire.$watch(statePath, value => {
+        if (
+          !active ||
+          !element.isConnected ||
+          !universalReactRenderer.hasActiveComponent(element.id)
+        ) {
+          return;
+        }
+
         universalReactRenderer.updateProps(element.id, { value });
       });
       if (typeof cleanup === 'function') cleanups.push(cleanup);
     }
 
     this.containerCleanups.set(element.id, () => {
+      active = false;
       cleanups.forEach(cleanup => cleanup());
       this.containerCleanups.delete(element.id);
+    });
+  }
+
+  /**
+   * Handle validation produced by a React component locally. Livewire's
+   * client API has no stable public error-bag mutation method across the
+   * supported majors, so errors are fed back through the same controlled React
+   * props contract instead of calling an undocumented server method.
+   */
+  private static setupValidationBridge(element: HTMLElement): void {
+    const normalizeErrors = (detail: Record<string, unknown>): string[] => {
+      const rawErrors = detail.errors ?? detail.error ?? [];
+      const errors = Array.isArray(rawErrors) ? rawErrors : [rawErrors];
+
+      return errors
+        .filter(error => error !== null && error !== undefined && error !== '')
+        .map(String);
+    };
+
+    const handleValidationError = (event: Event) => {
+      const detail = ((event as CustomEvent).detail ?? {}) as Record<string, unknown>;
+      const errors = normalizeErrors(detail);
+
+      universalReactRenderer.updateProps(element.id, { errors });
+      element.dispatchEvent(
+        new CustomEvent('react-validation-updated', {
+          detail: { errors },
+          bubbles: true,
+        })
+      );
+    };
+
+    const handleValidationClear = () => {
+      universalReactRenderer.updateProps(element.id, { errors: [] });
+      element.dispatchEvent(
+        new CustomEvent('react-validation-updated', {
+          detail: { errors: [] },
+          bubbles: true,
+        })
+      );
+    };
+
+    element.addEventListener('react-validation-error', handleValidationError);
+    element.addEventListener('react-validation-clear', handleValidationClear);
+
+    const previousCleanup = this.containerCleanups.get(element.id);
+    this.containerCleanups.set(element.id, () => {
+      element.removeEventListener('react-validation-error', handleValidationError);
+      element.removeEventListener('react-validation-clear', handleValidationClear);
+      previousCleanup?.();
     });
   }
 
@@ -298,6 +387,7 @@ export class FilamentReactAdapter {
   private static cleanupContainer(element: HTMLElement): void {
     if (!element.id) return;
     this.containerCleanups.get(element.id)?.();
+    this.renderedProps.delete(element.id);
     if (universalReactRenderer.hasActiveComponent(element.id)) {
       universalReactRenderer.unmount(element.id);
     }

@@ -95,6 +95,47 @@ changes, and uses `$wire.$watch()` for server-to-React updates. Because this
 logic lives in the runtime MutationObserver, fields added after initial page
 load are supported too.
 
+### Complete field example
+
+The PHP field only declares the Filament state name and the registered React
+component. The React component remains a normal controlled input:
+
+```php
+ReactField::make('content')
+    ->component('RichTextInput')
+    ->required()
+    ->reactive();
+```
+
+```tsx
+import { useReactField, type ReactFieldProps } from '@react-wrapper';
+
+export default function RichTextInput(props: ReactFieldProps<string>) {
+    const { value, setValue, errors, disabled, required } = useReactField(props);
+
+    return (
+        <label>
+            Content
+            <textarea
+                id={props.fieldId}
+                value={value ?? ''}
+                disabled={disabled}
+                required={required}
+                onChange={event => setValue(event.target.value)}
+            />
+            {errors.map(error => <span key={error}>{error}</span>)}
+        </label>
+    );
+}
+```
+
+For a form whose schema state path is `data`, `ReactField::make('content')`
+renders `data-react-state-path="data.content"`. The adapter finds the nearest
+Livewire `wire:id` and calls `$wire.$set('data.content', nextValue)` when the
+React input changes. Livewire watchers then update the controlled `value` when
+Filament changes or validates the field. The component does not need to know
+that Livewire exists.
+
 ## ReactWidget
 
 `ReactWidget` renders a React component inside a Filament widget. Use the

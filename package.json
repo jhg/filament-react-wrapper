@@ -16,6 +16,7 @@
     "format": "prettier --write \"resources/**/*.{ts,tsx}\"",
     "analyze": "vite build --mode analyze",
     "test": "vitest run",
+    "test:bundle": "vitest run tests/integration/PrebuiltRuntime.contract.test.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "ci": "npm run typecheck && npm run lint:check && npm run format:check && npm run test",

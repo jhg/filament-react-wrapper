@@ -100,7 +100,7 @@ For an explicit container, the runtime also discovers `data-react-component` ele
 ```blade
 <div
     data-react-component="UserCard"
-    data-react-props="{{ Js::from(['name' => $user->name]) }}"
+    data-react-props='@js(['name' => $user->name])'
 ></div>
 ```
 
@@ -113,7 +113,7 @@ npm run build     # production
 
 The application needs `@vitejs/plugin-react` for JSX/TSX compilation and `laravel-vite-plugin` if it uses Laravel’s standard Vite integration. Those are application build dependencies, not a package-specific Vite integration.
 
-For a manual DOM mount instead of `@react`, use `data-react-component` and `data-react-props` as shown above. Always use `Js::from()` or `@js()` when placing dynamic values in JavaScript.
+For a manual DOM mount instead of `@react`, use `data-react-component` and `data-react-props` as shown above. Use `@js()` for a JSON data attribute and `Js::from()` inside a JavaScript block; do not interpolate raw Blade values into script source.
 
 ## Filament fields and widgets
 
@@ -144,6 +144,64 @@ ReactWidget::component('DashboardChart')
     ->height(320)
     ->polling('10s');
 ```
+
+### A real React input connected to Filament
+
+Create the field in the Filament form schema and give it the name of the
+Livewire state property. The package derives the complete state path from the
+schema (for example, `data.content`), so you do not need to call Livewire from
+the React component:
+
+```php
+ReactField::make('content')
+    ->label('Content')
+    ->component('RichTextInput')
+    ->required()
+    ->reactive();
+```
+
+Register `RichTextInput` in the application entrypoint and implement it as a
+normal controlled React input:
+
+```tsx
+import { useReactField, type ReactFieldProps } from '@react-wrapper';
+
+export default function RichTextInput(props: ReactFieldProps<string>) {
+    const { value, setValue, errors, disabled, required } = useReactField(props);
+
+    return (
+        <div>
+            <textarea
+                id={props.fieldId}
+                value={value ?? ''}
+                disabled={disabled}
+                required={required}
+                onChange={event => setValue(event.target.value)}
+            />
+
+            {errors.map(error => <p key={error}>{error}</p>)}
+        </div>
+    );
+}
+```
+
+The value flow is:
+
+```text
+ReactField::make('content')
+  -> data-react-state-path="data.content"
+  -> React calls setValue(nextValue)
+  -> adapter resolves the nearest wire:id
+  -> $wire.$set('data.content', nextValue)
+  -> Filament/Livewire can validate and rerender
+  -> $wire.$watch(...) sends the server value back to React
+```
+
+Keep the input controlled: render the current `value` and call `setValue` (or
+`onChange`) for every user edit. Do not copy the initial value into separate
+React state unless the component intentionally implements a separate draft.
+`errors` contains Filament/PHP validation errors after a server render; a
+component may also send local messages with the documented validation events.
 
 For a subclass, call `$this->withComponent('DashboardChart')` in its constructor or configure it through `ReactWidget::component()`. Widget data is supplied by overriding `getData()`.
 
@@ -244,6 +302,25 @@ export function RichEditor({ value, onChange, errors, disabled }: ReactFieldProp
 `useReactField()` is available when a shared component wants a setter with the
 same functional-update ergonomics as React. Existing `initialData` and
 `onDataChange` components continue to work.
+
+React components can report client-side validation without knowing about
+Livewire:
+
+```tsx
+container.dispatchEvent(new CustomEvent('react-validation-error', {
+  detail: { errors: ['The value is invalid'] },
+  bubbles: true,
+}));
+
+container.dispatchEvent(new CustomEvent('react-validation-clear', { bubbles: true }));
+```
+
+The adapter feeds those messages back through the controlled `errors` prop and
+`useReactField().errors`. They are client-side React errors; they are not
+inserted into Filament's server error bag because Livewire 3 and 4 do not
+provide one stable public client API for mutating that bag. Filament/PHP
+validation remains the source of truth when the form is validated or saved,
+and server-provided errors replace the React-local errors on the next render.
 
 For new code, use normal React state for local data, `useFilamentState` for
 Filament-aware state, and `usePersistedState` for explicitly browser-persisted

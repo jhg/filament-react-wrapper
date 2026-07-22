@@ -27,8 +27,9 @@ describe('FilamentReactAdapter', () => {
   it('syncs React changes to the real Livewire component and watches server changes', () => {
     vi.useFakeTimers();
     const set = vi.fn();
+    let watchCallback: ((value: unknown) => void) | undefined;
     const watch = vi.fn((_path: string, callback: (value: unknown) => void) => {
-      callback('From Livewire');
+      watchCallback = callback;
       return vi.fn();
     });
     window.Livewire = {
@@ -49,6 +50,7 @@ describe('FilamentReactAdapter', () => {
     const updateProps = vi
       .spyOn(universalReactRenderer, 'updateProps')
       .mockImplementation(() => {});
+    vi.spyOn(universalReactRenderer, 'hasActiveComponent').mockReturnValue(true);
     const loaded = vi.fn();
 
     document.body.innerHTML =
@@ -59,6 +61,7 @@ describe('FilamentReactAdapter', () => {
     FilamentReactAdapter.initializeComponents();
     vi.runAllTimers();
     rendererProps?.onDataChange?.('From React');
+    watchCallback?.('From Livewire');
 
     expect(window.Livewire.find).toHaveBeenCalledWith('lw-1');
     expect(set).toHaveBeenCalledWith('data.profile.name', 'From React');
@@ -83,6 +86,33 @@ describe('FilamentReactAdapter', () => {
     expect(render).toHaveBeenCalledTimes(2);
     expect(document.getElementById('valid')?.dataset.reactRendered).toBe('true');
     expect(document.getElementById('invalid')?.dataset.reactRendered).toBe('true');
+  });
+
+  it('pushes server-rendered props into an existing React island after a Livewire morph', () => {
+    vi.useFakeTimers();
+    const render = vi.spyOn(universalReactRenderer, 'render').mockImplementation(props => {
+      props.onMounted?.();
+    });
+    const updateProps = vi.spyOn(universalReactRenderer, 'updateProps').mockImplementation(() => {});
+
+    document.body.innerHTML =
+      '<div id="morphed-field" data-react-component="ProfileField" ' +
+      'data-react-props=\'{"value":"before","errors":[]}\'></div>';
+
+    FilamentReactAdapter.initializeComponents();
+    vi.runAllTimers();
+
+    document.getElementById('morphed-field')?.setAttribute(
+      'data-react-props',
+      '{"value":"after","errors":["Required"]}'
+    );
+    document.dispatchEvent(new Event('livewire:navigated'));
+
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(updateProps).toHaveBeenCalledWith('morphed-field', {
+      value: 'after',
+      errors: ['Required'],
+    });
   });
 
   it('removes the old livewire:update dependency and rescans after navigation', () => {

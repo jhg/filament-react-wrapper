@@ -4,6 +4,7 @@ namespace HadyFayed\ReactWrapper\Tests;
 
 use HadyFayed\ReactWrapper\ReactWrapperServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\ViewErrorBag;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra
@@ -19,9 +20,28 @@ class TestCase extends Orchestra
 
     protected function getPackageProviders($app)
     {
-        return [
+        return array_values(array_filter([
+            \Filament\Support\SupportServiceProvider::class,
+            \Filament\FilamentServiceProvider::class,
+            \Filament\Actions\ActionsServiceProvider::class,
+            \Filament\Forms\FormsServiceProvider::class,
+            \Filament\Schemas\SchemasServiceProvider::class,
+            \Filament\Widgets\WidgetsServiceProvider::class,
+            \Livewire\LivewireServiceProvider::class,
             ReactWrapperServiceProvider::class,
-        ];
+        ], 'class_exists'));
+    }
+
+    protected function getPackageAliases($app)
+    {
+        return [];
+    }
+
+    protected function defineEnvironment($app)
+    {
+        $app['view']->addNamespace('react-wrapper-tests', __DIR__.'/Fixtures/views');
+        $app['view']->share('errors', new ViewErrorBag);
+        $app['config']->set('app.key', 'base64:'.base64_encode(str_repeat('a', 32)));
     }
 
     public function getEnvironmentSetUp($app)

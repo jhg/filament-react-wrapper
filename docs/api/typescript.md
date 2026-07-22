@@ -111,6 +111,42 @@ export function Editor({ value, onChange, errors, disabled }: ReactFieldProps<st
 `useReactField()` is an optional adapter when a shared component wants
 functional updates and normalized error helpers.
 
+For example, a Filament field declared as
+`ReactField::make('content')->component('RichTextInput')` can be implemented as
+a normal controlled input:
+
+```tsx
+import { useReactField, type ReactFieldProps } from '@react-wrapper';
+
+export default function RichTextInput(props: ReactFieldProps<string>) {
+    const { value, setValue, errors, disabled } = useReactField(props);
+
+    return (
+        <>
+            <textarea
+                id={props.fieldId}
+                value={value ?? ''}
+                disabled={disabled}
+                onChange={event => setValue(event.target.value)}
+            />
+            {errors.map(error => <p key={error}>{error}</p>)}
+        </>
+    );
+}
+```
+
+`setValue(nextValue)` calls the field's `onChange`; the adapter sends that value
+to the full Filament state path, such as `data.content`, through Livewire. The
+server value comes back through `$watch`, so the component should render
+`value` directly instead of maintaining a second uncontrolled copy.
+
+For client-side validation, dispatch `react-validation-error` from the field
+container with `{ detail: { errors: string[] } }`; dispatch
+`react-validation-clear` when the value becomes valid. The adapter exposes the
+result through `errors` and `useReactField().errors`. This is local React
+feedback, not a mutation of Filament's server error bag. Server-side Filament
+validation still arrives through the field props after a Livewire render.
+
 ## Livewire bridge
 
 ```tsx

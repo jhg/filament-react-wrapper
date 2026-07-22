@@ -6,16 +6,18 @@
     $isLazy = $lazy ?? true;
     $polling = $polling ?? false;
     $pollingInterval = $pollingInterval ?? '5s';
+    $heading = $heading ?? null;
+    $description = $description ?? null;
 @endphp
 
 <x-filament-widgets::widget class="react-widget">
     <x-filament::section>
-        @if($getHeading())
-            <x-slot name="heading">{{ $getHeading() }}</x-slot>
+        @if($heading)
+            <x-slot name="heading">{{ $heading }}</x-slot>
         @endif
 
-        @if($getDescription())
-            <x-slot name="description">{{ $getDescription() }}</x-slot>
+        @if($description)
+            <x-slot name="description">{{ $description }}</x-slot>
         @endif
 
         <div

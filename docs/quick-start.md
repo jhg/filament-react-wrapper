@@ -54,7 +54,7 @@ For manual containers, use JavaScript escaping for the props:
 ```blade
 <div
     data-react-component="UserCard"
-    data-react-props="{{ Js::from(['name' => $user->name]) }}"
+    data-react-props='@js(['name' => $user->name])'
 ></div>
 ```
 
@@ -65,17 +65,38 @@ use HadyFayed\ReactWrapper\Forms\Components\ReactField;
 use HadyFayed\ReactWrapper\Widgets\ReactWidget;
 
 ReactField::make('profile')
-    ->component('UserCard')
-    ->props(fn ($record) => [
-        'name' => $record?->name,
-        'email' => $record?->email,
-    ])
+    ->component('RichTextInput')
+    ->required()
     ->reactive();
 
 ReactWidget::component('UserStats')
     ->props(['period' => 'month'])
     ->height(300);
 ```
+
+`ReactField` is a controlled input. Its component must render the received
+`value` and call `onChange` (or `useReactField().setValue`) when the user edits
+it:
+
+```tsx
+import { useReactField, type ReactFieldProps } from '@react-wrapper';
+
+export function RichTextInput(props: ReactFieldProps<string>) {
+    const { value, setValue, errors } = useReactField(props);
+
+    return (
+        <>
+            <textarea value={value ?? ''} onChange={event => setValue(event.target.value)} />
+            {errors.map(error => <p key={error}>{error}</p>)}
+        </>
+    );
+}
+```
+
+The adapter sends the edit to the enclosing Livewire component using the
+field's complete state path, such as `data.profile`. `UserCard` above is a
+display component for `@react`; it is not a substitute for a controlled field
+unless it implements this contract.
 
 ## 4. Add local state
 

@@ -54,6 +54,13 @@ jobs:
       - name: Build package
         run: npm run build
 
+      - name: Build and test the Composer runtime
+        if: matrix.node-version == '20' && matrix.react-version == '18'
+        run: |
+          npm run build:laravel -- --skip-tests --skip-lint
+          npm run test:bundle
+          git diff --exit-code -- resources/vendor/react-wrapper.js
+
       - name: Run tests with coverage gate
         run: npm run test:coverage
 
@@ -208,5 +215,3 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: main
-          head: HEAD
