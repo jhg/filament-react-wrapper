@@ -18,7 +18,7 @@ export interface StateManagerConfig {
 
 export interface StateManagerContextType {
   state: StateRecord;
-  setState: (path: string, value: unknown) => void;
+  setState: (path: string, value: unknown | ((current: unknown) => unknown)) => void;
   getState: (path: string) => unknown;
   subscribe: (path: string, callback: (value: unknown) => void) => () => void;
   reset: () => void;
@@ -41,14 +41,18 @@ class ContextStateManager {
     }
   }
 
-  setState(path: string, value: unknown): void {
-    this.state = setNestedValue(this.state, path, value);
+  setState(path: string, value: unknown | ((current: unknown) => unknown)): void {
+    const currentValue = getNestedValue(this.state, path);
+    const nextValue =
+      typeof value === 'function' ? (value as (current: unknown) => unknown)(currentValue) : value;
+
+    this.state = setNestedValue(this.state, path, nextValue);
 
     if (this.persistence) {
       this.persistState();
     }
 
-    notifySubscribers(this.subscribers, this.state, path, value);
+    notifySubscribers(this.subscribers, this.state, path, nextValue);
   }
 
   getState(path: string): unknown {
@@ -77,7 +81,7 @@ class ContextStateManager {
 
   reset(): void {
     this.state = {};
-    if (this.persistence) {
+    if (this.persistence && typeof window !== 'undefined') {
       localStorage.removeItem(this.namespace);
     }
     this.subscribers.clear();
@@ -90,6 +94,8 @@ class ContextStateManager {
   }
 
   private loadPersistedState(): void {
+    if (typeof window === 'undefined') return;
+
     try {
       const persisted = localStorage.getItem(this.namespace);
       if (persisted) {
@@ -102,6 +108,8 @@ class ContextStateManager {
   }
 
   private persistState(): void {
+    if (typeof window === 'undefined') return;
+
     try {
       localStorage.setItem(this.namespace, JSON.stringify(this.state));
     } catch (error) {
@@ -113,7 +121,7 @@ class ContextStateManager {
 // Zustand-based state manager
 interface ZustandState {
   state: StateRecord;
-  setState: (path: string, value: unknown) => void;
+  setState: (path: string, value: unknown | ((current: unknown) => unknown)) => void;
   getState: (path: string) => unknown;
   reset: () => void;
   batchUpdate: (updates: Array<{ path: string; value: unknown }>) => void;
@@ -137,7 +145,13 @@ class ZustandStateManager {
   private initializeZustandStore(config: StateManagerConfig): void {
     try {
       // Dynamic import to avoid breaking if Zustand is not installed
-      const runtimeRequire = require as unknown as (moduleName: string) => Record<string, unknown>;
+      const runtimeRequire =
+        typeof require === 'function'
+          ? (require as unknown as (moduleName: string) => Record<string, unknown>)
+          : undefined;
+      if (!runtimeRequire) {
+        throw new Error('Zustand requires an application bundler integration.');
+      }
       const zustand = runtimeRequire('zustand');
       const middleware = runtimeRequire('zustand/middleware');
       const create = zustand.create as (
@@ -159,9 +173,14 @@ class ZustandStateManager {
 
       let storeCreator = (set: SetState, get: GetState): ZustandState => ({
         state: {},
-        setState: (path: string, value: unknown) => {
+        setState: (path: string, value: unknown | ((current: unknown) => unknown)) => {
           set((state: ZustandState) => {
-            return { ...state, state: setNestedValue(state.state, path, value) };
+            const currentValue = getNestedValue(state.state, path);
+            const nextValue =
+              typeof value === 'function'
+                ? (value as (current: unknown) => unknown)(currentValue)
+                : value;
+            return { ...state, state: setNestedValue(state.state, path, nextValue) };
           });
         },
         getState: (path: string) => {
@@ -194,7 +213,7 @@ class ZustandStateManager {
     }
   }
 
-  setState(path: string, value: unknown): void {
+  setState(path: string, value: unknown | ((current: unknown) => unknown)): void {
     this.store.getState().setState(path, value);
   }
 
@@ -261,7 +280,14 @@ export const EnhancedStateProvider: React.FC<EnhancedStateProviderProps> = ({
   children,
   config = { strategy: 'context', persistence: true, devtools: true },
 }) => {
-  const stateManager = StateManagerFactory.create(config);
+  const { strategy, persistence, devtools, namespace } = config;
+
+  // Keep one manager for the lifetime of a provider. Creating it directly in
+  // the component body would reset state and subscriptions on parent renders.
+  const stateManager = React.useMemo(
+    () => StateManagerFactory.create({ strategy, persistence, devtools, namespace }),
+    [strategy, persistence, devtools, namespace]
+  );
 
   return (
     <EnhancedStateContext.Provider value={stateManager}>{children}</EnhancedStateContext.Provider>
@@ -279,7 +305,7 @@ export const useEnhancedStateManager = (): StateManagerContextType => {
 
 export const useEnhancedStatePath = <T = unknown,>(
   path: string
-): [T | undefined, (value: T) => void] => {
+): [T | undefined, (value: T | ((prev: T) => T)) => void] => {
   const { getState, setState, subscribe } = useEnhancedStateManager();
   const [value, setValue] = React.useState<T | undefined>(getState(path) as T);
 
@@ -291,8 +317,10 @@ export const useEnhancedStatePath = <T = unknown,>(
   }, [path, subscribe]);
 
   const setterWithCallback = React.useCallback(
-    (newValue: T) => {
-      setState(path, newValue);
+    (newValue: T | ((prev: T) => T)) => {
+      setState(path, (current: unknown) =>
+        typeof newValue === 'function' ? (newValue as (prev: T) => T)(current as T) : newValue
+      );
     },
     [path, setState]
   );
@@ -304,8 +332,20 @@ export const useEnhancedStatePath = <T = unknown,>(
 export const useFilamentState = <T = unknown,>(
   path: string,
   initialValue?: T
-): [T, (value: T) => void] => {
+): [T, (value: T | ((prev: T) => T)) => void] => {
   const [value, setValue] = useEnhancedStatePath<T>(path);
+  const resolvedValue = value ?? (initialValue as T);
+  const setResolvedValue = React.useCallback(
+    (nextValue: T | ((prev: T) => T)) => {
+      if (typeof nextValue === 'function') {
+        setValue(() => (nextValue as (prev: T) => T)(resolvedValue));
+        return;
+      }
 
-  return [value ?? (initialValue as T), setValue];
+      setValue(nextValue);
+    },
+    [resolvedValue, setValue]
+  );
+
+  return [resolvedValue, setResolvedValue];
 };

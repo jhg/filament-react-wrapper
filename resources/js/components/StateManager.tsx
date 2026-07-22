@@ -4,6 +4,7 @@ import React, {
   useReducer,
   useCallback,
   useEffect,
+  useSyncExternalStore,
   ReactNode,
 } from 'react';
 import {
@@ -16,7 +17,7 @@ import {
 
 // Forward declaration of GlobalStateManager interface for use in Window interface
 interface GlobalStateManagerInterface {
-  setState(path: string, value: unknown): void;
+  setState(path: string, value: unknown | ((current: unknown) => unknown)): void;
   getState<T = unknown>(path: string): T | undefined;
   subscribe(path: string, callback: (value: unknown) => void): () => void;
   reset(): void;
@@ -43,7 +44,7 @@ export interface StateAction {
 
 export interface StateManagerContextType {
   state: StateManagerState;
-  setState: (path: string, value: unknown) => void;
+  setState: (path: string, value: unknown | ((current: unknown) => unknown)) => void;
   updateState: (path: string, updater: (current: unknown) => unknown) => void;
   getState: (path: string) => unknown;
   resetState: () => void;
@@ -158,9 +159,17 @@ const StateManagerProviderComponent: React.FC<StateManagerProviderProps> = React
       return () => clearTimeout(timeoutId);
     }, [notifySubscribers]);
 
-    const setState = useCallback((path: string, value: unknown) => {
-      dispatch({ type: 'SET_STATE', path, payload: value });
-    }, []);
+    const setState = useCallback(
+      (path: string, value: unknown | ((current: unknown) => unknown)) => {
+        if (typeof value === 'function') {
+          dispatch({ type: 'UPDATE_STATE', path, payload: value });
+          return;
+        }
+
+        dispatch({ type: 'SET_STATE', path, payload: value });
+      },
+      []
+    );
 
     const updateState = useCallback((path: string, updater: (current: unknown) => unknown) => {
       dispatch({ type: 'UPDATE_STATE', path, payload: updater });
@@ -251,17 +260,25 @@ export const useStateManager = (): StateManagerContextType => {
   return context;
 };
 
-// Hook for specific state path - FIXED WITH PROPER SUBSCRIPTIONS
-export const useStatePath = <T = unknown,>(
+// Hook for a specific state path. The overloads preserve the useful TypeScript
+// distinction between an explicitly supplied default and an optional value.
+export function useStatePath<T>(
+  path: string,
+  defaultValue: T
+): [T, (value: T | ((prev: T) => T)) => void];
+export function useStatePath<T = unknown>(
+  path: string
+): [T | undefined, (value: T | ((prev: T) => T)) => void];
+export function useStatePath<T = unknown>(
   path: string,
   defaultValue?: T
-): [T, (value: T | ((prev: T) => T)) => void] => {
+): [T | undefined, (value: T | ((prev: T) => T)) => void] {
   const { getState, setState, subscribe } = useStateManager();
 
   // Initialize local state with value from state manager or default
-  const [localState, setLocalState] = React.useState<T>(() => {
+  const [localState, setLocalState] = React.useState<T | undefined>(() => {
     const stateValue = getState(path) as T;
-    return stateValue !== undefined ? stateValue : (defaultValue ?? ({} as T));
+    return stateValue !== undefined ? stateValue : defaultValue;
   });
 
   // Subscribe to changes in the state path with error handling
@@ -270,7 +287,7 @@ export const useStatePath = <T = unknown,>(
 
     const unsubscribe = subscribe(path, (value: unknown) => {
       if (isMounted) {
-        const newValue = value !== undefined ? (value as T) : (defaultValue ?? ({} as T));
+        const newValue = value !== undefined ? (value as T) : defaultValue;
         setLocalState(newValue);
       }
     });
@@ -281,6 +298,14 @@ export const useStatePath = <T = unknown,>(
     };
   }, [path, defaultValue, subscribe]);
 
+  // Make the default part of shared state as well, so sibling components
+  // using the same path observe the same initial value.
+  useEffect(() => {
+    if (getState(path) === undefined && defaultValue !== undefined) {
+      setState(path, defaultValue);
+    }
+  }, [path, defaultValue, getState, setState]);
+
   // Create a memoized setter function
   const setter = useCallback(
     (value: T | ((prev: T) => T)) => {
@@ -289,7 +314,7 @@ export const useStatePath = <T = unknown,>(
           const updater = value as (prev: T) => T;
           const currentValue = getState(path);
           const newValue = updater(
-            currentValue !== undefined ? (currentValue as T) : (defaultValue ?? ({} as T))
+            currentValue !== undefined ? (currentValue as T) : (defaultValue as T)
           );
           setState(path, newValue);
         } else {
@@ -303,7 +328,7 @@ export const useStatePath = <T = unknown,>(
   );
 
   return [localState, setter];
-};
+}
 
 // HOC for components that need state management
 export function withStateManager<P extends object>(
@@ -351,12 +376,16 @@ export class GlobalStateManager implements GlobalStateManagerInterface {
    * @param path Dot-notation path to set value at
    * @param value Value to set
    */
-  setState(path: string, value: unknown): void {
+  setState(path: string, value: unknown | ((current: unknown) => unknown)): void {
     if (!path) return;
 
-    const newState = setNestedValue(this._state, path, value);
+    const nextValue =
+      typeof value === 'function'
+        ? (value as (current: unknown) => unknown)(this.getState(path))
+        : value;
+    const newState = setNestedValue(this._state, path, nextValue);
     this._state = newState;
-    this.notifySubscribers(path, value);
+    this.notifySubscribers(path, nextValue);
   }
 
   /**
@@ -511,6 +540,48 @@ export class GlobalStateManager implements GlobalStateManagerInterface {
 }
 
 export const globalStateManager = new GlobalStateManager();
+
+/**
+ * React hook for sharing state across independent React roots. Prefer
+ * useStatePath when components share a provider; this hook deliberately uses
+ * the package singleton as an explicit cross-root boundary.
+ */
+export function useGlobalStatePath<T>(
+  path: string,
+  defaultValue: T
+): [T, (value: T | ((prev: T) => T)) => void];
+export function useGlobalStatePath<T = unknown>(
+  path: string
+): [T | undefined, (value: T | ((prev: T) => T)) => void];
+export function useGlobalStatePath<T = unknown>(
+  path: string,
+  defaultValue?: T
+): [T | undefined, (value: T | ((prev: T) => T)) => void] {
+  const subscribe = React.useCallback(
+    (onStoreChange: () => void) => globalStateManager.subscribe(path, () => onStoreChange()),
+    [path]
+  );
+  const getSnapshot = React.useCallback(() => globalStateManager.getState<T>(path), [path]);
+  const value = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  React.useEffect(() => {
+    const current = globalStateManager.getState<T>(path);
+    if (current === undefined && defaultValue !== undefined) {
+      globalStateManager.setState(path, defaultValue);
+    }
+  }, [path, defaultValue]);
+
+  const setter = React.useCallback(
+    (nextValue: T | ((prev: T) => T)) => {
+      globalStateManager.setState(path, (current: unknown) =>
+        typeof nextValue === 'function' ? (nextValue as (prev: T) => T)(current as T) : nextValue
+      );
+    },
+    [path]
+  );
+
+  return [value === undefined ? defaultValue : value, setter];
+}
 
 // Make global state manager available on window for debugging
 if (typeof window !== 'undefined') {

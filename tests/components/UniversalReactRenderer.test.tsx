@@ -76,4 +76,40 @@ describe('UniversalReactRenderer', () => {
     expect(() => renderer.updateProps('unknown', {})).not.toThrow();
     renderer.unmountAll();
   });
+
+  it('adapts Filament fields to value and onChange props', async () => {
+    const onChange = vi.fn();
+    const FieldProbe = ({
+      value,
+      onChange: change,
+    }: {
+      value: string;
+      onChange: (value: string) => void;
+    }) => <button onClick={() => change(`${value}!`)}>{value}</button>;
+
+    componentRegistry.register({
+      name: 'FieldProbe',
+      component: FieldProbe,
+      isAsync: false,
+    });
+    document.body.innerHTML = '<div id="field-container"></div>';
+    const renderer = new UniversalReactRenderer();
+
+    await act(async () => {
+      renderer.render({
+        component: 'FieldProbe',
+        props: { isField: true, fieldName: 'profile.name', value: 'Ada' },
+        containerId: 'field-container',
+        onDataChange: onChange,
+      });
+    });
+
+    await act(async () => {
+      screen.getByRole('button').click();
+    });
+
+    expect(onChange).toHaveBeenCalledWith('Ada!');
+    renderer.unmountAll();
+    componentRegistry.unregister('FieldProbe');
+  });
 });

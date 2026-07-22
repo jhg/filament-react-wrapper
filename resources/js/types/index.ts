@@ -38,6 +38,7 @@ export interface IUniversalRenderer {
     onError?: (error: Error) => void;
   }): void;
   unmount(containerId: string): void;
+  updateProps(containerId: string, newProps: unknown): void;
   isRendered(containerId: string): boolean;
 }
 

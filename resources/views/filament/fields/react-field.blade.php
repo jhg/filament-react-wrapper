@@ -11,6 +11,7 @@
         id="{{ $containerId }}"
         data-react-component="{{ $componentName }}"
         data-react-props="{{ json_encode($componentProps) }}"
+        data-react-state-path="{{ $getName() }}"
         data-lazy="{{ $isLazy ? 'true' : 'false' }}"
         class="react-field-container"
         style="min-height: {{ $height }}px;"
@@ -39,6 +40,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById(@js($containerId));
+        const componentName = @js($componentName);
         
         if (!container) return;
         
@@ -61,7 +63,7 @@
                             React Component Error
                         </h3>
                         <div class="mt-2 text-sm text-red-700">
-                            <p>Failed to load component: {{ $componentName }}</p>
+                            <p>Failed to load component: ${componentName}</p>
                             <p class="react-error-message text-xs mt-1"></p>
                         </div>
                     </div>

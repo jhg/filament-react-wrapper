@@ -57,6 +57,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById(@js($containerId));
+        const componentName = @js($componentName);
         
         if (!container) return;
         
@@ -79,7 +80,7 @@
                             Widget Error
                         </h3>
                         <div class="mt-2 text-sm text-red-700">
-                            <p>Failed to load widget: {{ $componentName }}</p>
+                            <p>Failed to load widget: ${componentName}</p>
                             <p class="react-error-message text-xs mt-1"></p>
                         </div>
                     </div>

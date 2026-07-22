@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   GlobalStateManager,
   StateManagerProvider,
+  useGlobalStatePath,
   useStatePath,
   useStateManager,
   withStateManager,
@@ -65,6 +66,36 @@ describe('StateManager React integration', () => {
     expect(screen.getByRole('button')).toHaveTextContent('1');
     expect(onStateChange).toHaveBeenCalled();
     vi.useRealTimers();
+  });
+
+  it('shares a path default with sibling consumers and supports independent roots', async () => {
+    function FirstConsumer() {
+      const [value] = useStatePath('shared', 'initial');
+      return <span data-testid="first">{value}</span>;
+    }
+
+    function SecondConsumer() {
+      const [value] = useStatePath<string>('shared');
+      return <span data-testid="second">{value}</span>;
+    }
+
+    render(
+      <StateManagerProvider>
+        <FirstConsumer />
+        <SecondConsumer />
+      </StateManagerProvider>
+    );
+
+    await act(async () => undefined);
+    expect(screen.getByTestId('first')).toHaveTextContent('initial');
+    expect(screen.getByTestId('second')).toHaveTextContent('initial');
+
+    const globalWrapper = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+    const { result } = renderHook(() => useGlobalStatePath('shared-root', 1), {
+      wrapper: globalWrapper,
+    });
+    act(() => result.current[1](value => value + 1));
+    expect(result.current[0]).toBe(2);
   });
 
   it('supports the global manager and its lifecycle methods', () => {

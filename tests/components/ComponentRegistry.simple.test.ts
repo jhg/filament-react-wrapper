@@ -5,6 +5,10 @@ import {
   registerComponents,
   ReactComponentRegistry,
 } from '../../resources/js/components/ReactComponentRegistry';
+import {
+  registerComponent,
+  registerLazyComponent,
+} from '../../resources/js/components/SimpleRegistration';
 import { universalReactRenderer } from '../../resources/js/components/UniversalReactRenderer';
 
 // Simple mock component for testing
@@ -26,6 +30,20 @@ describe('ComponentRegistry - Basic Functionality', () => {
     const retrieved = componentRegistry.get('TestComponent');
     expect(retrieved).toBeDefined();
     expect(retrieved?.name).toBe('TestComponent');
+  });
+
+  it('keeps normal functional components synchronous', () => {
+    registerComponent('FunctionalComponent', TestComponent, { props: { title: 'Registered' } });
+
+    const definition = componentRegistry.get('FunctionalComponent');
+    expect(definition?.isAsync).toBe(false);
+    expect(definition?.defaultProps).toEqual({ title: 'Registered' });
+  });
+
+  it('marks only explicit dynamic imports as async', () => {
+    registerLazyComponent('LazyComponent', async () => ({ default: TestComponent }));
+
+    expect(componentRegistry.get('LazyComponent')?.isAsync).toBe(true);
   });
 
   it('should return false for non-existent components', () => {

@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
+import React from 'react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -59,6 +60,21 @@ describe('EnhancedStateManager', () => {
     expect(() => renderHook(() => useEnhancedStateManager())).toThrow(
       'useEnhancedStateManager must be used within an EnhancedStateProvider'
     );
+  });
+
+  it('keeps the manager and state when a parent rerenders', () => {
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <EnhancedStateProvider config={{ strategy: 'context', persistence: false, devtools: false }}>
+        {children}
+      </EnhancedStateProvider>
+    );
+    const { result, rerender } = renderHook(() => useFilamentState('counter', 0), { wrapper });
+
+    act(() => result.current[1](value => value + 1));
+    expect(result.current[0]).toBe(1);
+
+    rerender();
+    expect(result.current[0]).toBe(1);
   });
 
   it('persists context state and falls back when Zustand is unavailable', () => {

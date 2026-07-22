@@ -116,15 +116,32 @@ class ReactField extends Field
     public function getComponentProps(): array
     {
         $currentData = $this->getState();
+
+        $livewireComponentId = null;
+        if (method_exists($this, 'getLivewire')) {
+            try {
+                $livewire = $this->getLivewire();
+                $livewireComponentId = is_object($livewire) && method_exists($livewire, 'getId')
+                    ? $livewire->getId()
+                    : null;
+            } catch (\Throwable) {
+                // Some Filament lifecycle phases render a field before it is
+                // attached to a schema/livewire container.
+            }
+        }
         
         // Get base props from react component
         $baseProps = $this->reactComponent->getComponentProps();
         
         // Add field-specific props
         $fieldProps = [
+            // React-first controlled field contract. Keep initialData and
+            // onDataChange compatibility for existing components.
+            'value' => $currentData,
             'initialData' => $currentData ?? [],
             'fieldName' => $this->getName(),
             'fieldId' => $this->getId(),
+            'livewireComponentId' => $livewireComponentId,
             'resizable' => $this->resizable,
             'fullscreen' => $this->fullscreen,
             'toolbar' => $this->toolbar,
@@ -133,6 +150,7 @@ class ReactField extends Field
             'required' => $this->isRequired(),
             'disabled' => $this->isDisabled(),
             'hidden' => $this->isHidden(),
+            'isField' => true,
         ];
 
         return array_merge($baseProps, $fieldProps);

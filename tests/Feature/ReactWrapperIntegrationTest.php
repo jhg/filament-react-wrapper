@@ -96,6 +96,14 @@ class ReactWrapperIntegrationTest extends TestCase
         $this->assertStringNotContainsString('document.getElementById(\'{{ $containerId }}\')', $fieldView);
     }
 
+    public function test_react_fields_expose_a_state_path_for_controlled_updates(): void
+    {
+        $view = file_get_contents(__DIR__.'/../../resources/views/filament/fields/react-field.blade.php');
+
+        $this->assertIsString($view);
+        $this->assertStringContainsString('data-react-state-path="{{ $getName() }}"', $view);
+    }
+
     public function test_blade_factory_renders_escaped_component_attributes(): void
     {
         $html = app(ReactComponentFactory::class)->render(

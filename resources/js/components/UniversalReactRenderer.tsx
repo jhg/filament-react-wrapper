@@ -94,14 +94,26 @@ const UniversalReactWrapper: React.FC<{
     }, [componentDef]);
 
     // Use useMemo to prevent unnecessary re-renders when props haven't changed
-    const mergedProps = React.useMemo(
-      () => ({
+    const mergedProps = React.useMemo(() => {
+      const props = {
         ...(componentDef?.defaultProps || {}),
         ...componentProps,
         onDataChange,
-      }),
-      [componentDef?.defaultProps, componentProps, onDataChange]
-    );
+      } as Record<string, unknown>;
+
+      // Fields expose a normal controlled React contract while retaining the
+      // legacy initialData/onDataChange props for existing components.
+      const isField =
+        componentProps.isField === true || typeof componentProps.fieldName === 'string';
+      if (isField) {
+        props.value = Object.prototype.hasOwnProperty.call(componentProps, 'value')
+          ? componentProps.value
+          : componentProps.initialData;
+        props.onChange = onDataChange ?? componentProps.onChange;
+      }
+
+      return props;
+    }, [componentDef?.defaultProps, componentProps, onDataChange]);
 
     // Handle missing component after all hooks have been called
     if (!componentDef || !Component) {
@@ -167,6 +179,10 @@ const UniversalReactWrapper: React.FC<{
 export class UniversalReactRenderer {
   private roots: Map<string, Root> = new Map();
   private containers: Map<string, HTMLElement> = new Map();
+  private metadata: Map<
+    string,
+    { component: string; props: Record<string, unknown>; statePath?: string }
+  > = new Map();
 
   /**
    * Render a React component in the specified container
@@ -183,6 +199,16 @@ export class UniversalReactRenderer {
       const container = document.getElementById(containerId);
       if (!container) {
         throw new Error(`Container element with ID "${containerId}" not found`);
+      }
+
+      this.metadata.set(containerId, { component, props, statePath });
+      container.dataset.reactComponent = component;
+      if (statePath) container.dataset.reactStatePath = statePath;
+      try {
+        container.dataset.reactProps = JSON.stringify(props);
+      } catch {
+        // Function props are valid for direct JS mounts but cannot be mirrored
+        // into a DOM data attribute. The in-memory metadata remains canonical.
       }
 
       // Check if root already exists
@@ -202,7 +228,7 @@ export class UniversalReactRenderer {
         }
 
         // Sync with Livewire if available and statePath is provided
-        if (statePath && window.workflowDataSync) {
+        if (statePath && typeof window !== 'undefined' && window.workflowDataSync) {
           window.workflowDataSync(statePath, data);
         }
       };
@@ -225,7 +251,7 @@ export class UniversalReactRenderer {
   /**
    * Update props for an already rendered component
    */
-  updateProps(containerId: string, newProps: Record<string, unknown>): void {
+  updateProps(containerId: string, newProps: unknown): void {
     const root = this.roots.get(containerId);
     const container = this.containers.get(containerId);
 
@@ -235,11 +261,21 @@ export class UniversalReactRenderer {
     }
 
     // Re-render with updated props
-    const existingData = container.dataset;
+    const metadata = this.metadata.get(containerId);
+    if (!metadata) {
+      console.warn(`No metadata found for rendered component "${containerId}"`);
+      return;
+    }
+
+    const nextProps =
+      typeof newProps === 'object' && newProps !== null && !Array.isArray(newProps)
+        ? { ...metadata.props, ...(newProps as Record<string, unknown>) }
+        : { ...metadata.props, value: newProps };
+
     this.render({
-      component: existingData.component || '',
-      props: newProps,
-      statePath: existingData.statePath,
+      component: metadata.component,
+      props: nextProps,
+      statePath: metadata.statePath,
       containerId,
     });
   }
@@ -253,6 +289,7 @@ export class UniversalReactRenderer {
       root.unmount();
       this.roots.delete(containerId);
       this.containers.delete(containerId);
+      this.metadata.delete(containerId);
     }
   }
 

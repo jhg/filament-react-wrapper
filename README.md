@@ -49,7 +49,7 @@ The runtime can be refreshed manually with `php artisan filament-react:assets --
 
 The Composer prebuilt runtime bundles React 18.3.x and React DOM 18.3.x privately. If the application has React 17, 18, or 19 installed, that does not cause a conflict as long as the application only consumes the prebuilt runtime and does not pass application-built React components into it.
 
-When developing application-owned components with `--dev`, the package source uses the application’s own `react` and `react-dom`. The installer preserves versions already declared in `package.json`; if they are missing, it installs the tested React 18.3.x baseline. Keep `react` and `react-dom` on the same major version. React 18 is the tested baseline for the Vite workflow.
+When developing application-owned components with `--dev`, the package source uses the application’s own `react` and `react-dom`. The installer preserves versions already declared in `package.json`; if they are missing, it installs the tested React 18.3.x baseline. Keep `react` and `react-dom` on the same major version. React 18 and React 19 are tested in CI.
 
 Do not load the prebuilt runtime and the Vite runtime at the same time. `--dev` sets `REACT_WRAPPER_ASSET_MODE=vite` to prevent duplicate React copies and invalid-hook-call errors.
 
@@ -59,14 +59,10 @@ After running `filament-react:install --dev`, register a component in the applic
 
 ```tsx
 // resources/js/app.tsx
-import '@react-wrapper';
-import { registerComponent } from '@react-wrapper';
+import { defineComponents } from '@react-wrapper';
 import UserCard from './components/UserCard';
 
-registerComponent('UserCard', UserCard, {
-  defaultProps: { role: 'Member' },
-  metadata: { category: 'users', tags: ['profile'] },
-});
+defineComponents({ UserCard });
 ```
 
 If the application already has `vite.config.js`, keep its existing plugins and add the package alias:
@@ -86,13 +82,9 @@ export default defineConfig({
 });
 ```
 
-Make sure the entrypoint containing the registration is one of the inputs compiled by Laravel Vite, then import the bootstrap from it:
-
-```tsx
-// resources/js/app.tsx
-import './bootstrap-react';
-import './components/UserCard';
-```
+Make sure this entrypoint is one of the inputs compiled by Laravel Vite. The
+package import starts the adapter; the published `bootstrap-react.tsx` remains
+available for older applications that already import it.
 
 Render it in Blade with the package directive:
 
@@ -159,6 +151,21 @@ Both integrations keep the React DOM under `wire:ignore`, dispatch `react-data-c
 
 ## State management
 
+React components do not need a package state provider. Use normal React state
+for state owned by one component:
+
+```tsx
+import { useState } from 'react';
+
+function Counter() {
+  const [count, setCount] = useState(0);
+  return <button onClick={() => setCount(value => value + 1)}>{count}</button>;
+}
+```
+
+Use the package state helpers only when state is intentionally shared by
+several mounted components:
+
 ```tsx
 import { StateManagerProvider, useStatePath } from '@react-wrapper';
 
@@ -178,8 +185,9 @@ export function App() {
 
 `useStatePath()` shares values between all components rendered below the same
 `StateManagerProvider`; it stays entirely in React and does not go through
-Livewire. For React roots that do not share a provider, use the exported
-`globalStateManager` instead.
+Livewire. It is not required by reusable components. For React roots that do
+not share a provider, use `useGlobalStatePath()` or the lower-level exported
+`globalStateManager` explicitly.
 
 To persist a value between page loads:
 
@@ -199,7 +207,8 @@ function Preferences() {
 ```
 
 By default, `usePersistedState()` serializes the value as JSON and stores it in
-the browser's `localStorage` under the supplied key. It is client-side
+the browser's `localStorage` under a namespaced key (`react-wrapper:user-prefs`).
+Pass `namespace` to isolate tenants, users, or applications. It is client-side
 persistence: it survives reloads and browser restarts for the same origin, but
 it is not Laravel session state, database state, or a secure store. Use
 `storage: 'sessionStorage'` for tab/session lifetime or `storage: 'none'` to
@@ -207,13 +216,33 @@ disable browser storage. The optional `syncWithLivewire` configuration can
 also mirror changes through the application's `window.workflowDataSync`
 callback; it does not change where the primary browser persistence happens.
 
-Available state APIs include `useStateManager`, `useStatePath`, `globalStateManager`, `usePersistedState`, `StateManagerFactory`, and the lower-level `StateManagerService` classes. See [state management](docs/state-management.md) for provider scope, storage options, debouncing, and Livewire synchronization.
+For a Filament form field, the preferred React contract is controlled and does
+not expose Livewire concepts:
+
+```tsx
+import type { ReactFieldProps } from '@react-wrapper';
+
+export function RichEditor({ value, onChange, errors, disabled }: ReactFieldProps<string>) {
+  return (
+    <>
+      <textarea value={value ?? ''} disabled={disabled} onChange={event => onChange(event.target.value)} />
+      {errors?.map(error => <p key={error}>{error}</p>)}
+    </>
+  );
+}
+```
+
+`useReactField()` is available when a shared component wants a setter with the
+same functional-update ergonomics as React. Existing `initialData` and
+`onDataChange` components continue to work.
+
+Available state APIs include `useStateManager`, `useStatePath`, `useGlobalStatePath`, `globalStateManager`, `usePersistedState`, `useReactField`, `StateManagerFactory`, and the lower-level `StateManagerService` classes. See [state management](docs/state-management.md) for provider scope, storage options, debouncing, and Livewire synchronization.
 
 ## Component registry and advanced services
 
 The public entrypoint exports:
 
-- `registerComponent`, `registerComponents`, `getComponent`, `listComponents`, and `componentRegistry`
+- `defineComponents`, `registerComponent`, `registerLazyComponent`, `registerComponents`, `getComponent`, `listComponents`, and `componentRegistry`
 - `mountIsland`, `autoMountIslands`, and `createComponent`
 - `universalReactRenderer`
 - state and persistence services

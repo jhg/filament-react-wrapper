@@ -1,6 +1,8 @@
 // State persistence service for handling data sync between React and backend
 export interface StatePersistenceConfig {
   key: string;
+  /** Namespace used for the physical browser-storage key. */
+  namespace?: string;
   storage?: 'localStorage' | 'sessionStorage' | 'none';
   syncWithLivewire?: boolean;
   livewirePath?: string;
@@ -11,14 +13,37 @@ export interface StatePersistenceConfig {
   };
 }
 
+interface RegisteredPersistence {
+  config: StatePersistenceConfig;
+  references: number;
+}
+
+type PersistenceListener = (value: unknown) => void;
+
+interface BrowserStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
+interface BrowserStorageEvent extends Event {
+  key: string | null;
+  newValue: string | null;
+}
+
 export class StatePersistenceService {
-  private configs: Map<string, StatePersistenceConfig> = new Map();
-  private debounceTimeouts: Map<string, number> = new Map();
+  private configs: Map<string, RegisteredPersistence> = new Map();
+  private debounceTimeouts: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private lastValues: Map<string, unknown> = new Map();
+  private listeners: Map<string, Set<PersistenceListener>> = new Map();
   private maxMapSize = 1000; // Prevent unbounded growth
 
   /**
-   * Register a state path for persistence
+   * Register a state path for persistence.
+   *
+   * Registration is reference counted so multiple components can safely use
+   * the same key without one component unmounting the other component's
+   * configuration.
    */
   register(config: StatePersistenceConfig): void {
     // Prevent unbounded growth by cleaning up old entries
@@ -26,11 +51,33 @@ export class StatePersistenceService {
       this.cleanupOldEntries();
     }
 
-    this.configs.set(config.key, {
+    const existing = this.configs.get(config.key);
+    if (existing) {
+      existing.references += 1;
+
+      if (
+        existing.config.namespace !== (config.namespace ?? 'react-wrapper') ||
+        existing.config.storage !== (config.storage ?? 'localStorage')
+      ) {
+        console.warn(
+          `State persistence key "${config.key}" is already registered with a different storage configuration. The first configuration remains active.`
+        );
+      }
+
+      return;
+    }
+
+    const normalizedConfig: StatePersistenceConfig = {
+      namespace: 'react-wrapper',
       storage: 'localStorage',
       syncWithLivewire: false,
       debounceMs: 300,
       ...config,
+    };
+
+    this.configs.set(config.key, {
+      config: normalizedConfig,
+      references: 1,
     });
 
     // Load initial value from storage
@@ -41,11 +88,12 @@ export class StatePersistenceService {
    * Save state value with persistence and sync
    */
   async save(key: string, value: unknown): Promise<void> {
-    const config = this.configs.get(key);
-    if (!config) {
+    const registration = this.configs.get(key);
+    if (!registration) {
       console.warn(`State persistence config not found for key: ${key}`);
       return;
     }
+    const config = registration.config;
 
     // Check if value actually changed
     const lastValue = this.lastValues.get(key);
@@ -62,20 +110,22 @@ export class StatePersistenceService {
     }
 
     // Debounce the save operation
-    const timeout = setTimeout(async () => {
-      await this.performSave(key, value, config);
-      this.debounceTimeouts.delete(key);
-    }, config.debounceMs);
+    const timeout = setTimeout(
+      async () => {
+        await this.performSave(key, value, config);
+        this.debounceTimeouts.delete(key);
+      },
+      Math.max(0, config.debounceMs ?? 300)
+    );
 
-    this.debounceTimeouts.set(key, timeout as unknown as number);
+    this.debounceTimeouts.set(key, timeout);
   }
 
   /**
    * Load state value from storage
    */
   async load(key: string): Promise<unknown> {
-    const config = this.configs.get(key);
-    if (!config) {
+    if (!this.configs.has(key)) {
       return null;
     }
 
@@ -89,7 +139,7 @@ export class StatePersistenceService {
     // Execute all pending saves immediately
     this.debounceTimeouts.forEach((timeout, key) => {
       clearTimeout(timeout);
-      const config = this.configs.get(key);
+      const config = this.configs.get(key)?.config;
       const value = this.lastValues.get(key);
       if (config && value !== undefined) {
         this.performSave(key, value, config);
@@ -102,13 +152,20 @@ export class StatePersistenceService {
    * Unregister a state path
    */
   unregister(key: string): void {
-    const timeout = this.debounceTimeouts.get(key);
-    if (timeout) {
-      clearTimeout(timeout);
-      this.debounceTimeouts.delete(key);
+    const registration = this.configs.get(key);
+    if (registration) {
+      registration.references -= 1;
+      if (registration.references <= 0) {
+        const timeout = this.debounceTimeouts.get(key);
+        if (timeout) {
+          clearTimeout(timeout);
+          this.debounceTimeouts.delete(key);
+        }
+        this.configs.delete(key);
+        this.listeners.delete(key);
+        this.lastValues.delete(key);
+      }
     }
-    this.configs.delete(key);
-    this.lastValues.delete(key);
   }
 
   /**
@@ -129,35 +186,33 @@ export class StatePersistenceService {
    * Clear all stored data
    */
   async clear(): Promise<void> {
-    // Clear all configs
+    // Remove only keys owned by this service. Never clear the entire origin's
+    // localStorage/sessionStorage because unrelated application data may live
+    // there.
+    this.configs.forEach(({ config }, key) => {
+      this.removeFromStorage(config);
+      this.lastValues.delete(key);
+    });
+
     this.configs.clear();
-    this.lastValues.clear();
+    this.listeners.clear();
 
     // Clear all timeouts
     this.debounceTimeouts.forEach(timeout => clearTimeout(timeout));
     this.debounceTimeouts.clear();
-
-    // Clear localStorage and sessionStorage
-    if (typeof window !== 'undefined') {
-      localStorage.clear();
-      sessionStorage.clear();
-    }
   }
 
   /**
    * Clear stored data for a specific key
    */
   private clearSync(key: string): void {
-    const config = this.configs.get(key);
+    const config = this.configs.get(key)?.config;
     if (!config) {
       return;
     }
 
     // Clear from storage
-    if (config.storage !== 'none') {
-      const storage = config.storage === 'localStorage' ? localStorage : sessionStorage;
-      storage.removeItem(key);
-    }
+    this.removeFromStorage(config);
 
     // Clear from memory
     this.lastValues.delete(key);
@@ -185,20 +240,14 @@ export class StatePersistenceService {
         : value;
 
       // Save to storage
-      if (config.storage !== 'none') {
-        this.saveToStorage(
-          key,
-          serializedValue,
-          config.storage as 'localStorage' | 'sessionStorage'
-        );
-      }
+      if (config.storage !== 'none') this.saveToStorage(config, serializedValue);
 
       // Sync with Livewire
       if (config.syncWithLivewire && config.livewirePath) {
         this.syncWithLivewire(config.livewirePath, serializedValue);
       }
 
-      console.log(`State persisted for key: ${key}`, serializedValue);
+      this.notify(key, value);
     } catch (error) {
       console.error(`Error persisting state for key: ${key}`, error);
     }
@@ -207,16 +256,14 @@ export class StatePersistenceService {
   /**
    * Save to browser storage
    */
-  private saveToStorage(
-    key: string,
-    value: unknown,
-    storageType: 'localStorage' | 'sessionStorage'
-  ): void {
-    const storage = storageType === 'localStorage' ? localStorage : sessionStorage;
+  private saveToStorage(config: StatePersistenceConfig, value: unknown): void {
+    const storage = this.getStorage(config);
+    if (!storage) return;
+
     try {
-      storage.setItem(key, JSON.stringify(value));
+      storage.setItem(this.getStorageKey(config), JSON.stringify(value));
     } catch (error) {
-      console.error(`Error saving to ${storageType}:`, error);
+      console.error(`Error saving to ${config.storage}:`, error);
     }
   }
 
@@ -224,15 +271,25 @@ export class StatePersistenceService {
    * Load from browser storage
    */
   private loadFromStorage(key: string): unknown {
-    const config = this.configs.get(key);
+    const config = this.configs.get(key)?.config;
     if (!config || config.storage === 'none') {
       return null;
     }
 
-    const storage = config.storage === 'localStorage' ? localStorage : sessionStorage;
+    const storage = this.getStorage(config);
+    if (!storage) return null;
+
     try {
-      const stored = storage.getItem(key);
+      const storageKey = this.getStorageKey(config);
+      // Read the old un-namespaced key once for backwards compatibility and
+      // migrate it to the namespaced key on the next write.
+      const namespacedStored = storage.getItem(storageKey);
+      const legacyStored = namespacedStored === null ? storage.getItem(key) : null;
+      const stored = namespacedStored ?? legacyStored;
       if (stored) {
+        if (namespacedStored === null && legacyStored !== null) {
+          storage.setItem(storageKey, legacyStored);
+        }
         const parsed = JSON.parse(stored);
         const value = config.transformer?.deserialize
           ? config.transformer.deserialize(parsed)
@@ -251,11 +308,60 @@ export class StatePersistenceService {
    * Sync with Livewire component
    */
   private syncWithLivewire(livewirePath: string, value: unknown): void {
-    if (window.workflowDataSync) {
+    if (typeof window !== 'undefined' && window.workflowDataSync) {
       window.workflowDataSync(livewirePath, value);
     } else {
       console.warn('workflowDataSync not available for Livewire sync');
     }
+  }
+
+  /** Subscribe to changes made by another hook using the same logical key. */
+  subscribe(key: string, listener: PersistenceListener): () => void {
+    if (!this.listeners.has(key)) this.listeners.set(key, new Set());
+    this.listeners.get(key)!.add(listener);
+
+    return () => {
+      const listeners = this.listeners.get(key);
+      listeners?.delete(listener);
+      if (listeners && listeners.size === 0) this.listeners.delete(key);
+    };
+  }
+
+  private notify(key: string, value: unknown): void {
+    this.listeners.get(key)?.forEach(listener => {
+      try {
+        listener(this.deepClone(value));
+      } catch (error) {
+        console.error(`Error notifying persisted state listeners for key "${key}":`, error);
+      }
+    });
+  }
+
+  private getStorage(config: StatePersistenceConfig): BrowserStorage | null {
+    if (typeof window === 'undefined' || config.storage === 'none') return null;
+    return config.storage === 'sessionStorage' ? window.sessionStorage : window.localStorage;
+  }
+
+  private getStorageKey(config: StatePersistenceConfig): string {
+    return `${config.namespace ?? 'react-wrapper'}:${config.key}`;
+  }
+
+  private removeFromStorage(config: StatePersistenceConfig): void {
+    const storage = this.getStorage(config);
+    if (!storage) return;
+
+    storage.removeItem(this.getStorageKey(config));
+  }
+
+  /** Handle updates made by another tab. */
+  handleStorageEvent(event: BrowserStorageEvent): void {
+    if (!event.key) return;
+
+    this.configs.forEach(({ config }, key) => {
+      if (this.getStorageKey(config) === event.key) {
+        this.notify(key, event.newValue === null ? undefined : this.loadFromStorage(key));
+      }
+    });
   }
 
   /**
@@ -345,46 +451,57 @@ if (typeof window !== 'undefined') {
 
   // Make available globally for debugging
   (window as unknown as Record<string, unknown>).statePersistenceService = statePersistenceService;
+
+  window.addEventListener('storage', event => {
+    statePersistenceService.handleStorageEvent(event);
+  });
 }
 
 // React hook for using state persistence
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 export function usePersistedState<T>(
   key: string,
   defaultValue: T,
   config?: Partial<StatePersistenceConfig>
 ): [T, (value: T | ((prev: T) => T)) => void] {
-  // Memoize the full config to prevent unnecessary re-renders
+  const storage = config?.storage ?? 'localStorage';
+  const namespace = config?.namespace ?? 'react-wrapper';
+  const syncWithLivewire = config?.syncWithLivewire ?? false;
+  const livewirePath = config?.livewirePath;
+  const debounceMs = config?.debounceMs ?? 300;
+  const serialize = config?.transformer?.serialize;
+  const deserialize = config?.transformer?.deserialize;
+
+  // Depend on configuration values instead of the object identity. This lets
+  // callers pass an inline config object without re-registering on every render.
   const fullConfig = useMemo<StatePersistenceConfig>(
     () => ({
       key,
-      storage: 'localStorage',
-      syncWithLivewire: false,
-      debounceMs: 300,
-      ...config,
+      namespace,
+      storage,
+      syncWithLivewire,
+      livewirePath,
+      debounceMs,
+      transformer: { serialize, deserialize },
     }),
-    [key, config]
+    [key, namespace, storage, syncWithLivewire, livewirePath, debounceMs, serialize, deserialize]
   );
 
-  // Register the key
+  const [value, setValue] = useState<T>(defaultValue);
+  const defaultValueRef = useRef(defaultValue);
+  defaultValueRef.current = defaultValue;
+
   useEffect(() => {
     statePersistenceService.register(fullConfig);
-    return () => statePersistenceService.unregister(key);
-  }, [key, fullConfig]);
-
-  // Load initial value with memoization
-  const initialValue = useMemo(() => {
-    // Since load is now async, we'll start with defaultValue and update in useEffect
-    return defaultValue ?? ({} as T);
-  }, [defaultValue]);
-
-  // Use state with memoized initial value
-  const [value, setValue] = useState<T>(() => initialValue);
-
-  // Load persisted value on mount
-  useEffect(() => {
     let mounted = true;
+
+    setValue(defaultValueRef.current);
+
+    const unsubscribe = statePersistenceService.subscribe(key, loaded => {
+      if (!mounted) return;
+      setValue(loaded === undefined ? defaultValueRef.current : (loaded as T));
+    });
 
     const loadPersistedValue = async () => {
       try {
@@ -401,8 +518,10 @@ export function usePersistedState<T>(
 
     return () => {
       mounted = false;
+      unsubscribe();
+      statePersistenceService.unregister(key);
     };
-  }, [key]);
+  }, [key, fullConfig]);
 
   // Memoized setter function to prevent unnecessary re-renders
   const setter = useCallback(

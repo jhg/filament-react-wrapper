@@ -5,10 +5,15 @@ import {
   StateManagerProvider,
   useStateManager,
   useStatePath,
+  useGlobalStatePath,
   withStateManager,
   globalStateManager,
 } from './components/StateManager';
-import { statePersistenceService, usePersistedState } from './services/StatePersistenceService';
+import {
+  statePersistenceService,
+  usePersistedState,
+  type StatePersistenceConfig,
+} from './services/StatePersistenceService';
 import { devTools } from './services/DevTools';
 import { codeSplittingService } from './services/CodeSplittingService';
 import { componentVersioningService } from './services/ComponentVersioningService';
@@ -25,14 +30,17 @@ import {
 import {
   Component,
   registerComponent,
+  defineComponents,
   getComponent,
   listComponents,
   mountIsland,
+  registerLazyComponent,
   autoMountIslands,
   createComponent,
   registerComponents as registerComponentsSimple,
 } from './components/SimpleRegistration';
 import { useFilamentBridge, use$wire, filamentBridge } from './services/FilamentBridge';
+import { useReactField } from './hooks/useReactField';
 
 import type { ReactWrapperAPI } from './types';
 import { registerFilamentReactGlobals, setWindowGlobal } from './utils/globals';
@@ -53,6 +61,7 @@ export {
   StateManagerProvider,
   useStateManager,
   useStatePath,
+  useGlobalStatePath,
   withStateManager,
   globalStateManager,
 
@@ -75,9 +84,11 @@ export {
   // Simple Registration (MingleJS-inspired)
   Component,
   registerComponent,
+  defineComponents,
   getComponent,
   listComponents,
   mountIsland,
+  registerLazyComponent,
   autoMountIslands,
   createComponent,
   registerComponentsSimple,
@@ -86,10 +97,13 @@ export {
   useFilamentBridge,
   use$wire,
   filamentBridge,
+  useReactField,
 };
 
 // Export types
 export * from './types';
+export type { ReactFieldProps } from './hooks/useReactField';
+export type { StatePersistenceConfig };
 export type { StateManagerConfig };
 
 // Bootstrap function for initialization

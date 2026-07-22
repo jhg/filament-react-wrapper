@@ -1,17 +1,33 @@
 import React from 'react';
 import { componentRegistry } from './ReactComponentRegistry';
+import { universalReactRenderer } from './UniversalReactRenderer';
 import type {
   ComponentProps,
   IComponentDefinition,
+  IComponentMetadata,
   ReactComponent,
 } from '../interfaces/IComponentRegistry';
 import { registerFilamentReactGlobals } from '../utils/globals';
 
+let autoMountTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const scheduleAutoMount = () => {
+  if (typeof document === 'undefined' || autoMountTimeout !== null) return;
+
+  autoMountTimeout = setTimeout(() => {
+    autoMountTimeout = null;
+    autoMountIslands();
+  }, 0);
+};
+
 // MingleJS-inspired simple component registration
-export interface SimpleComponentConfig {
+export interface SimpleComponentConfig<P extends object = Record<string, unknown>> {
   lazy?: boolean;
   category?: string;
-  props?: ComponentProps;
+  props?: Partial<P> & ComponentProps;
+  /** Registry naming used by the advanced API, accepted for convenience. */
+  defaultProps?: Partial<P> & ComponentProps;
+  metadata?: IComponentMetadata;
   middleware?: string[];
 }
 
@@ -22,7 +38,8 @@ export function Component(name: string, config: SimpleComponentConfig = {}) {
     componentRegistry.register({
       name,
       component: target,
-      defaultProps: config.props || {},
+      isAsync: false,
+      defaultProps: config.defaultProps ?? config.props ?? {},
       config: {
         lazy: config.lazy || false,
         dependencies: [],
@@ -30,25 +47,28 @@ export function Component(name: string, config: SimpleComponentConfig = {}) {
         ...Object.fromEntries(Object.entries(config).filter(([key]) => key !== 'middleware')),
       },
       metadata: {
-        category: config.category || 'general',
-        description: `Auto-registered component: ${name}`,
+        ...config.metadata,
+        category: config.category ?? config.metadata?.category ?? 'general',
+        description: config.metadata?.description ?? `Auto-registered component: ${name}`,
       },
     });
+    scheduleAutoMount();
 
     return target;
   };
 }
 
 // Simple component registration function (alternative to decorator)
-export const registerComponent = <T extends ReactComponent>(
+export const registerComponent = <P extends object>(
   name: string,
-  component: T,
-  config: SimpleComponentConfig = {}
+  component: React.ComponentType<P>,
+  config: SimpleComponentConfig<P> = {}
 ) => {
   componentRegistry.register({
     name,
     component,
-    defaultProps: config.props || {},
+    isAsync: false,
+    defaultProps: config.defaultProps ?? config.props ?? {},
     config: {
       lazy: config.lazy || false,
       dependencies: [],
@@ -56,10 +76,51 @@ export const registerComponent = <T extends ReactComponent>(
       ...Object.fromEntries(Object.entries(config).filter(([key]) => key !== 'middleware')),
     },
     metadata: {
-      category: config.category || 'general',
-      description: `Simple registered component: ${name}`,
+      ...config.metadata,
+      category: config.category ?? config.metadata?.category ?? 'general',
+      description: config.metadata?.description ?? `Simple registered component: ${name}`,
     },
   });
+  scheduleAutoMount();
+};
+
+/**
+ * Register a named component map and return the same map for convenient
+ * composition in a normal React entrypoint.
+ */
+export const defineComponents = <T extends Record<string, ReactComponent>>(components: T): T => {
+  Object.entries(components).forEach(([name, component]) => {
+    componentRegistry.register({ name, component, isAsync: false });
+  });
+
+  scheduleAutoMount();
+
+  return components;
+};
+
+/** Register a component whose value is loaded through a dynamic import. */
+export const registerLazyComponent = (
+  name: string,
+  loader: () => Promise<{ default: ReactComponent }>,
+  config: SimpleComponentConfig = {}
+) => {
+  componentRegistry.register({
+    name,
+    component: loader,
+    isAsync: true,
+    defaultProps: config.defaultProps ?? config.props ?? {},
+    config: {
+      lazy: true,
+      dependencies: [],
+      ...Object.fromEntries(Object.entries(config).filter(([key]) => key !== 'middleware')),
+    },
+    metadata: {
+      ...config.metadata,
+      category: config.category ?? config.metadata?.category ?? 'general',
+      description: config.metadata?.description ?? `Lazy registered component: ${name}`,
+    },
+  });
+  scheduleAutoMount();
 };
 
 // Simple component getter
@@ -84,37 +145,49 @@ export const listComponents = (category?: string) => {
 
 // Island renderer (MingleJS style)
 export const mountIsland = (
-  selector: string,
+  selector: string | Element,
   componentName: string,
   props: ComponentProps = {}
 ) => {
-  const element = document.querySelector(selector);
+  const element = typeof selector === 'string' ? document.querySelector(selector) : selector;
   if (!element) {
-    console.warn(`Element with selector "${selector}" not found`);
-    return;
+    console.warn(`Element with selector "${String(selector)}" not found`);
+    return undefined;
   }
 
   const component = getComponent(componentName);
   if (!component) {
     console.warn(`Component "${componentName}" not found`);
-    return;
+    return undefined;
   }
 
-  // Dynamic import for React DOM
-  import('react-dom/client')
-    .then(({ createRoot }) => {
-      const root = createRoot(element);
-      const Component = component.component as ReactComponent;
-      root.render(React.createElement(Component, props));
-    })
-    .catch(error => {
-      console.error('Failed to mount island:', error);
-    });
+  const htmlElement = element as HTMLElement;
+  if (!htmlElement.id) {
+    htmlElement.id = `react-island-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  htmlElement.dataset.reactComponent = componentName;
+  htmlElement.dataset.reactProps = JSON.stringify(props);
+  htmlElement.setAttribute('data-react-rendered', 'true');
+
+  universalReactRenderer.render({
+    component: componentName,
+    props,
+    containerId: htmlElement.id,
+    onError: error => {
+      htmlElement.removeAttribute('data-react-rendered');
+      console.error(`Failed to mount island "${componentName}":`, error);
+    },
+  });
+
+  return () => universalReactRenderer.unmount(htmlElement.id);
 };
 
 // Auto-mount islands from DOM attributes
 export const autoMountIslands = () => {
-  const islands = document.querySelectorAll('[data-react-component]');
+  const islands = document.querySelectorAll<HTMLElement>(
+    '[data-react-component]:not([data-react-rendered])'
+  );
 
   islands.forEach(island => {
     const componentName = island.getAttribute('data-react-component');
@@ -130,13 +203,13 @@ export const autoMountIslands = () => {
         }
       }
 
-      mountIsland(`[data-react-component="${componentName}"]`, componentName, props);
+      mountIsland(island, componentName, props);
     }
   });
 };
 
 // Simple component factory
-export const createComponent = (name: string, render: ReactComponent) => {
+export const createComponent = (name: string, render: React.ComponentType<object>) => {
   const Component = render;
   registerComponent(name, Component);
   return Component;
@@ -145,17 +218,21 @@ export const createComponent = (name: string, render: ReactComponent) => {
 // Batch component registration
 export const registerComponents = (components: Record<string, ReactComponent>) => {
   Object.entries(components).forEach(([name, component]) => {
-    registerComponent(name, component);
+    componentRegistry.register({ name, component, isAsync: false });
   });
+
+  scheduleAutoMount();
 };
 
 // Export for global access
 if (typeof window !== 'undefined') {
   registerFilamentReactGlobals({
     registerComponent,
+    defineComponents,
     getComponent,
     listComponents,
     mountIsland,
+    registerLazyComponent,
     autoMountIslands,
     createComponent,
     registerComponents,

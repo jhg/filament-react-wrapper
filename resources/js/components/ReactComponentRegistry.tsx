@@ -49,22 +49,12 @@ class ReactComponentRegistry implements IComponentRegistry {
       }
     }
 
-    // Handle dynamic imports for code splitting
-    const isAsyncImport =
-      typeof definition.component === 'function' &&
-      !(definition.component.prototype && definition.component.prototype.isReactComponent);
-
     let processedComponent = definition.component;
 
-    // Skip lazy loading for bundled components - all components are available synchronously
-    // Only show warning if not explicitly marked as synchronous
-    if (isAsyncImport && definition.isAsync !== false && !definition.isAsync) {
-      console.warn(
-        `Component ${definition.name} appears to be an async import but lazy loading is disabled in bundled mode. Ensure all components are imported synchronously.`
-      );
-      // Mark as processed to avoid re-processing
-      definition.isAsync = true;
-    }
+    // A functional React component is also a function, so it cannot be
+    // reliably distinguished from an async module loader at runtime. Async
+    // registration is therefore explicit (`isAsync: true`). This prevents a
+    // normal `React.FC` from being passed to React.lazy as a loader.
 
     // Apply global middleware
     for (const middleware of this.middleware) {

@@ -116,6 +116,7 @@ class ReactWidget extends Widget
         $widgetProps = [
             'widget' => true,
             'widgetId' => $this->getId(),
+            'livewireComponentId' => method_exists($this, 'getId') ? $this->getId() : null,
             'columnSpan' => $this->columnSpan,
             'polling' => $this->polling,
             'pollingInterval' => $this->pollingInterval,

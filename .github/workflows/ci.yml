@@ -13,13 +13,21 @@ jobs:
   # Node is intentionally tested independently from PHP. It is the asset
   # toolchain, not a framework-version constraint.
   frontend:
-    name: Frontend (Node ${{ matrix.node-version }})
+    name: Frontend (Node ${{ matrix.node-version }} / React ${{ matrix.react-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        node-version: ['20', '22', '24']
-    
+        include:
+          - node-version: '20'
+            react-version: '18'
+          - node-version: '22'
+            react-version: '18'
+          - node-version: '24'
+            react-version: '18'
+          - node-version: '24'
+            react-version: '19'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,6 +40,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Verify alternate React major
+        if: matrix.react-version == '19'
+        run: npm install --no-save --package-lock=false --ignore-scripts "react@^${{ matrix.react-version }}.0.0" "react-dom@^${{ matrix.react-version }}.0.0"
 
       - name: Run TypeScript check
         run: npm run typecheck
@@ -175,7 +187,7 @@ jobs:
   security:
     name: Security Check
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

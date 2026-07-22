@@ -1,5 +1,6 @@
 // Laravel-style method calls inspired by MingleJS $wire
 import { setWindowGlobal } from '../utils/globals';
+import { useMemo } from 'react';
 
 export interface FilamentBridgeConfig {
   baseUrl?: string;
@@ -155,6 +156,8 @@ export class FilamentBridge {
 
   // Private helper methods
   private getCSRFToken(): string {
+    if (typeof document === 'undefined') return '';
+
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     return token || '';
   }
@@ -179,7 +182,15 @@ export const filamentBridge = new FilamentBridge();
 
 // React hook for using the bridge
 export const useFilamentBridge = (config?: FilamentBridgeConfig) => {
-  const bridge = config ? new FilamentBridge(config) : filamentBridge;
+  const baseUrl = config?.baseUrl;
+  const token = config?.token;
+  const timeout = config?.timeout;
+  const livewireComponentId = config?.livewireComponentId;
+  const bridge = useMemo(() => {
+    if (!config) return filamentBridge;
+
+    return new FilamentBridge({ baseUrl, token, timeout, livewireComponentId });
+  }, [config, baseUrl, token, timeout, livewireComponentId]);
 
   return {
     $filament: {

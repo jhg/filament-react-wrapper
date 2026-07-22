@@ -172,6 +172,22 @@ export class FilamentReactAdapter {
       let hasNewComponents = false;
 
       mutations.forEach(mutation => {
+        mutation.removedNodes.forEach(node => {
+          if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+          const element = node as HTMLElement;
+          const removedContainers = [
+            ...(element.matches('[data-react-component]') ? [element] : []),
+            ...Array.from(element.querySelectorAll<HTMLElement>('[data-react-component]')),
+          ];
+
+          removedContainers.forEach(container => {
+            if (container.id && universalReactRenderer.hasActiveComponent(container.id)) {
+              universalReactRenderer.unmount(container.id);
+            }
+          });
+        });
+
         mutation.addedNodes.forEach(node => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const element = node as Element;

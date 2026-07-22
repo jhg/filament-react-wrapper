@@ -24,6 +24,8 @@ declare global {
     FilamentReact?: {
       ReactWrapper?: Record<string, unknown>;
       registerComponent?: unknown;
+      defineComponents?: unknown;
+      registerLazyComponent?: unknown;
       getComponent?: unknown;
       listComponents?: unknown;
       mountIsland?: unknown;

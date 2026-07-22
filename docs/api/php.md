@@ -30,8 +30,8 @@ The prebuilt runtime contains React 18.3.x and React DOM 18.3.x privately. It
 does not conflict with another application React version while it is used on
 its own. Do not mix components compiled against a different React copy with
 the prebuilt runtime. In `--dev` mode, React and React DOM are supplied by the
-application; keep their installed major versions equal. React 18 is the
-tested baseline.
+application; keep their installed major versions equal. React 18 and 19 are
+tested in CI.
 
 The package intentionally uses a standalone service provider rather than a
 panel plugin. This makes the integration available to all panels without
@@ -81,6 +81,13 @@ Public methods:
 
 Filament’s `required` rule is added automatically to the returned validation
 rules when the field is required.
+
+The registered React field receives a controlled contract: `value`,
+`onChange`, `errors`, `required`, `disabled`, and the field metadata. Calling
+`onChange(nextValue)` updates the Filament field state. The legacy
+`initialData`/`onDataChange` props remain available for existing components.
+The TypeScript helpers are `ReactFieldProps<T>` and the optional
+`useReactField()` hook.
 
 ## ReactWidget
 
