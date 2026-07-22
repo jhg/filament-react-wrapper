@@ -57,7 +57,7 @@ enum ChunkPriority {
   BACKGROUND = 5, // Load in background
 }
 
-class CodeSplittingService {
+export class CodeSplittingService {
   private chunks: Map<string, ChunkInfo> = new Map();
   private strategies: SplitStrategy[] = [];
   private prefetchRules: PrefetchRule[] = [];
@@ -277,7 +277,7 @@ class CodeSplittingService {
       const module = await import(
         /* webpackChunkName: "[request]" */
         /* webpackMode: "lazy" */
-        `@/components/${componentName}`
+        `@/components/${componentName}.tsx`
       );
 
       devTools.endPerformanceMeasure(`chunk-load-${chunkName}`);

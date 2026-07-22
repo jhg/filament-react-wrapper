@@ -1,4 +1,6 @@
 // Laravel-style method calls inspired by MingleJS $wire
+import { setWindowGlobal } from '../utils/globals';
+
 export interface FilamentBridgeConfig {
   baseUrl?: string;
   token?: string;
@@ -211,6 +213,6 @@ export const use$wire = () => {
 
 // Global access
 if (typeof window !== 'undefined') {
-  window.FilamentBridge = filamentBridge;
-  window.$filament = filamentBridge;
+  setWindowGlobal('FilamentBridge', filamentBridge);
+  setWindowGlobal('$filament', filamentBridge);
 }

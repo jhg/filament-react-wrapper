@@ -35,6 +35,7 @@ import {
 import { useFilamentBridge, use$wire, filamentBridge } from './services/FilamentBridge';
 
 import type { ReactWrapperAPI } from './types';
+import { registerFilamentReactGlobals, setWindowGlobal } from './utils/globals';
 
 // Import the Filament adapter to ensure it's loaded
 import './components/adapters/FilamentReactAdapter';
@@ -99,24 +100,21 @@ export function bootstrap() {
 
 // Make functionality globally available with namespacing
 if (typeof window !== 'undefined') {
-  // Initialize namespace
-  const filamentReact = window.FilamentReact || {};
+  const filamentReact = registerFilamentReactGlobals({
+    ReactWrapper: {
+      componentRegistry,
+      universalReactRenderer,
+      globalStateManager,
+      statePersistenceService,
+      devTools,
+      codeSplittingService,
+      componentVersioningService,
+      bootstrap,
+    },
+  });
 
-  filamentReact.ReactWrapper = {
-    componentRegistry,
-    universalReactRenderer,
-    globalStateManager,
-    statePersistenceService,
-    devTools,
-    codeSplittingService,
-    componentVersioningService,
-    bootstrap,
-  };
-
-  // Backward compatibility
-  window.FilamentReact = filamentReact;
-  window.ReactWrapper = filamentReact.ReactWrapper;
-  window.ReactComponentRegistry = componentRegistry;
+  setWindowGlobal('ReactWrapper', filamentReact.ReactWrapper);
+  setWindowGlobal('ReactComponentRegistry', componentRegistry);
 
   // Auto-bootstrap
   bootstrap();

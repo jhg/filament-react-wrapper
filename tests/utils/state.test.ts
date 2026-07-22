@@ -39,7 +39,14 @@ describe('state helpers', () => {
     expect(onError).not.toHaveBeenCalled();
 
     const failing = new Map([
-      ['user.name', new Set([(value: unknown) => { throw new Error(String(value)); }])],
+      [
+        'user.name',
+        new Set([
+          (value: unknown) => {
+            throw new Error(String(value));
+          },
+        ]),
+      ],
     ]);
     notifySubscribers(failing, { user: { name: 'Ada' } }, 'user.name', 'Ada', onError);
     expect(onError).toHaveBeenCalledWith(expect.any(Error), 'user.name');

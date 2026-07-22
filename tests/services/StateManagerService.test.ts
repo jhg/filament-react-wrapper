@@ -14,7 +14,7 @@ describe('StateManagerService', () => {
     const unsubscribe = manager.subscribe('user', value => userValues.push(value));
 
     manager.setState('user.name', 'Ada');
-    manager.updateState('user.age', current => (current as number | undefined ?? 0) + 1);
+    manager.updateState('user.age', current => ((current as number | undefined) ?? 0) + 1);
     manager.batchUpdate([
       { path: 'user.name', value: 'Grace' },
       { path: 'settings.theme', value: 'dark' },

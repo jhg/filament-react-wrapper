@@ -16,8 +16,8 @@ import {
 import { registerComponent, componentRegistry } from '@react-wrapper';
 
 registerComponent('UserCard', UserCard, {
-    defaultProps: { role: 'Member' },
-    metadata: { category: 'users', tags: ['profile'] },
+    props: { role: 'Member' },
+    category: 'users',
 });
 
 componentRegistry.mount('UserCard', 'user-card', { name: 'Ada' });
@@ -25,7 +25,7 @@ componentRegistry.mount('UserCard', 'user-card', { name: 'Ada' });
 
 The public registration helpers are `Component`, `registerComponent`, `registerComponents`, `getComponent`, `listComponents`, `createComponent`, `mountIsland`, and `autoMountIslands`. The registry also supports `get`, `has`, `create`, `getAll`, `getComponentNames`, `getStats`, `on`, `off`, `mount`, `unmount`, and `unregister`.
 
-`ComponentProps` is `Record<string, unknown>`. Public callbacks use `unknown` rather than an unsafe `any` contract.
+`ComponentProps` is `Record<string, unknown>`. Public callbacks use `unknown` instead of an unrestricted value type.
 
 ## State
 
@@ -52,7 +52,11 @@ For optional enhanced strategies:
 ```tsx
 import { StateManagerFactory, useFilamentState } from '@react-wrapper';
 
-const manager = StateManagerFactory.create({ strategy: 'context', initialState: {} });
+const manager = StateManagerFactory.create({
+    strategy: 'context',
+    persistence: false,
+    devtools: false,
+});
 const [value, setValue] = useFilamentState('form.value', '');
 ```
 

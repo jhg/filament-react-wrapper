@@ -258,12 +258,12 @@ class DevTools {
   }
 
   startPerformanceMeasure(name: string): void {
-    if (!this.isEnabled || typeof performance === 'undefined') return;
+    if (!this.isEnabled() || typeof performance === 'undefined') return;
     performance.mark(`react-wrapper-${name}-start`);
   }
 
   endPerformanceMeasure(name: string): void {
-    if (!this.isEnabled || typeof performance === 'undefined') return;
+    if (!this.isEnabled() || typeof performance === 'undefined') return;
 
     try {
       performance.mark(`react-wrapper-${name}-end`);
@@ -279,7 +279,7 @@ class DevTools {
 
   // Information retrieval methods
   getComponentInfo(name?: string): ComponentInfo | ComponentInfo[] | undefined {
-    if (!this.isEnabled) return undefined;
+    if (!this.isEnabled()) return undefined;
 
     if (name) {
       return this.components.get(name);
@@ -289,7 +289,7 @@ class DevTools {
   }
 
   getPerformanceMetrics(componentName?: string): PerformanceMetrics[] {
-    if (!this.isEnabled) return [];
+    if (!this.isEnabled()) return [];
 
     if (componentName) {
       return this.performanceMetrics.filter(m => m.componentName === componentName);
@@ -299,7 +299,7 @@ class DevTools {
   }
 
   getStateHistory(path?: string): StateChange[] {
-    if (!this.isEnabled) return [];
+    if (!this.isEnabled()) return [];
 
     if (path) {
       return this.stateHistory.filter(change => change.path.startsWith(path));

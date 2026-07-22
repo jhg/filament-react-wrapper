@@ -164,7 +164,7 @@ vendor/bin/phpunit -c phpunit.xml.dist
 composer validate --strict
 ```
 
-The Vitest coverage gate covers the core registry, state, persistence, event, and state-helper modules at a minimum of 60% for statements, branches, functions, and lines. GitHub Actions tests real Node and PHP/framework combinations, including PHP 8.4 and 8.5.
+The Vitest coverage gate includes the registry, both state managers, the renderer/Filament adapter, persistence, eventing, shared helpers, DevTools, code splitting, and versioning services. It enforces at least 60% statements, branches, functions, and lines overall. GitHub Actions tests real Node and PHP/framework combinations, including PHP 8.4 and 8.5.
 
 ## Documentation
 

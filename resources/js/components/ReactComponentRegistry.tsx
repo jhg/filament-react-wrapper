@@ -1,4 +1,3 @@
-import React from 'react';
 import { universalReactRenderer } from './UniversalReactRenderer';
 import {
   IComponentRegistry,

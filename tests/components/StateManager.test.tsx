@@ -11,7 +11,9 @@ import {
 
 function StateConsumer() {
   const { getState, setState } = useStateManager();
-  return <button onClick={() => setState('user.name', 'Grace')}>{String(getState('user.name'))}</button>;
+  return (
+    <button onClick={() => setState('user.name', 'Grace')}>{String(getState('user.name'))}</button>
+  );
 }
 
 function PathConsumer() {

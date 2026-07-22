@@ -5,6 +5,7 @@ import type {
   IComponentDefinition,
   ReactComponent,
 } from '../interfaces/IComponentRegistry';
+import { registerFilamentReactGlobals } from '../utils/globals';
 
 // MingleJS-inspired simple component registration
 export interface SimpleComponentConfig {
@@ -150,7 +151,7 @@ export const registerComponents = (components: Record<string, ReactComponent>) =
 
 // Export for global access
 if (typeof window !== 'undefined') {
-  window.FilamentReact = {
+  registerFilamentReactGlobals({
     registerComponent,
     getComponent,
     listComponents,
@@ -158,5 +159,5 @@ if (typeof window !== 'undefined') {
     autoMountIslands,
     createComponent,
     registerComponents,
-  };
+  });
 }

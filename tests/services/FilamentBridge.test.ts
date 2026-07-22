@@ -35,10 +35,13 @@ describe('FilamentBridge', () => {
 
     await expect(bridge.call('save', { id: 1 })).resolves.toEqual({ saved: true });
     expect(listener).toHaveBeenCalledWith({ id: 1 });
-    expect(fetchMock).toHaveBeenCalledWith('/custom/react-bridge', expect.objectContaining({
-      method: 'POST',
-      headers: expect.objectContaining({ 'X-CSRF-TOKEN': 'csrf' }),
-    }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/custom/react-bridge',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ 'X-CSRF-TOKEN': 'csrf' }),
+      })
+    );
   });
 
   it('can reconfigure a bridge and reports failed HTTP responses', async () => {

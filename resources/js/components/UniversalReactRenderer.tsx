@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { componentRegistry } from './ReactComponentRegistry';
+import { setWindowGlobal } from '../utils/globals';
 
 // Interface for component data and state synchronization
 export interface ReactRendererProps {
@@ -298,5 +299,5 @@ if (typeof window !== 'undefined') {
 
 // Make renderer available globally
 if (typeof window !== 'undefined') {
-  window.universalReactRenderer = universalReactRenderer;
+  setWindowGlobal('universalReactRenderer', universalReactRenderer);
 }

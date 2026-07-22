@@ -16,6 +16,13 @@ export default defineConfig({
         'resources/js/services/StatePersistenceService.tsx',
         'resources/js/components/StateManager.tsx',
         'resources/js/components/ReactComponentRegistry.tsx',
+        'resources/js/components/EnhancedStateManager.tsx',
+        'resources/js/components/UniversalReactRenderer.tsx',
+        'resources/js/components/adapters/FilamentReactAdapter.tsx',
+        'resources/js/services/DevTools.ts',
+        'resources/js/services/CodeSplittingService.ts',
+        'resources/js/services/ComponentVersioningService.ts',
+        'resources/js/utils/globals.ts',
       ],
       thresholds: {
         lines: 60,
@@ -29,17 +36,17 @@ export default defineConfig({
         'dist/',
         '**/*.d.ts',
         'vite.config.js',
-        'vitest.config.ts'
-      ]
+        'vitest.config.ts',
+      ],
     },
     globals: true,
     clearMocks: true,
-    restoreMocks: true
+    restoreMocks: true,
   },
   resolve: {
     alias: {
       '@': resolve(__dirname, './resources/js'),
-      '@tests': resolve(__dirname, './tests')
-    }
-  }
+      '@tests': resolve(__dirname, './tests'),
+    },
+  },
 });

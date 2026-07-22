@@ -11,7 +11,7 @@ vendor/bin/phpunit -c phpunit.xml.dist
 composer validate --strict
 ```
 
-The Vitest suite uses JSDOM and React Testing Library. Coverage is restricted to the core registry, state, persistence, event, and shared-state-helper modules and enforces at least 60% statements, branches, functions, and lines.
+The Vitest suite uses JSDOM and React Testing Library. Coverage includes the registry, both state managers, renderer and Filament adapter, persistence, eventing, shared helpers, DevTools, code splitting, and versioning services. The gate enforces at least 60% statements, branches, functions, and lines overall.
 
 The PHP suite uses Orchestra Testbench and verifies service-provider booting, Filament component configuration, Blade/factory output, and JavaScript-context escaping. The CI workflow resolves framework combinations through a matrix; it includes PHP 8.4 and 8.5 rather than assuming that one local PHP version represents every supported environment.
 

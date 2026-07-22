@@ -8,7 +8,7 @@ import {
 import { universalReactRenderer } from '../../resources/js/components/UniversalReactRenderer';
 
 // Simple mock component for testing
-const TestComponent = ({ title = 'Test' }: { title?: string }) => 
+const TestComponent = ({ title = 'Test' }: { title?: string }) =>
   React.createElement('div', { 'data-testid': 'test-component' }, title);
 
 describe('ComponentRegistry - Basic Functionality', () => {
@@ -19,7 +19,7 @@ describe('ComponentRegistry - Basic Functionality', () => {
   it('should register and retrieve a component', () => {
     componentRegistry.register({
       name: 'TestComponent',
-      component: TestComponent
+      component: TestComponent,
     });
 
     expect(componentRegistry.has('TestComponent')).toBe(true);
@@ -36,30 +36,30 @@ describe('ComponentRegistry - Basic Functionality', () => {
   it('should clear all components', () => {
     componentRegistry.register({
       name: 'TestComponent1',
-      component: TestComponent
+      component: TestComponent,
     });
-    
+
     componentRegistry.register({
-      name: 'TestComponent2', 
-      component: TestComponent
+      name: 'TestComponent2',
+      component: TestComponent,
     });
 
     expect(componentRegistry.getComponentNames()).toHaveLength(2);
-    
+
     componentRegistry.clear();
-    
+
     expect(componentRegistry.getComponentNames()).toHaveLength(0);
   });
 
   it('should get component names', () => {
     componentRegistry.register({
       name: 'Component1',
-      component: TestComponent
+      component: TestComponent,
     });
-    
+
     componentRegistry.register({
       name: 'Component2',
-      component: TestComponent
+      component: TestComponent,
     });
 
     const names = componentRegistry.getComponentNames();
@@ -71,11 +71,11 @@ describe('ComponentRegistry - Basic Functionality', () => {
   it('should unregister components', () => {
     componentRegistry.register({
       name: 'TestComponent',
-      component: TestComponent
+      component: TestComponent,
     });
 
     expect(componentRegistry.has('TestComponent')).toBe(true);
-    
+
     const removed = componentRegistry.unregister('TestComponent');
     expect(removed).toBe(true);
     expect(componentRegistry.has('TestComponent')).toBe(false);
@@ -84,7 +84,7 @@ describe('ComponentRegistry - Basic Functionality', () => {
   it('should return stats', () => {
     componentRegistry.register({
       name: 'TestComponent',
-      component: TestComponent
+      component: TestComponent,
     });
 
     const stats = componentRegistry.getStats();
@@ -94,7 +94,13 @@ describe('ComponentRegistry - Basic Functionality', () => {
 
   it('filters components and applies middleware', () => {
     const registry = new ReactComponentRegistry();
-    const middleware = vi.fn((component: React.ElementType) => component);
+    const hook = vi.fn();
+    const middleware = vi.fn((component: React.ElementType, _props, context) => {
+      context.hooks.addHook('middleware:hook', hook);
+      context.hooks.executeHooks('middleware:hook', { ok: true });
+      context.hooks.removeHook('middleware:hook', hook);
+      return component;
+    });
     const callback = vi.fn();
     registry.on('component:registered', callback);
     registry.addMiddleware(middleware);
@@ -109,6 +115,7 @@ describe('ComponentRegistry - Basic Functionality', () => {
     expect(registry.getAll({ name: /missing/ }).size).toBe(0);
     expect(registry.create('AdminCard', { title: 'Admin' })).toBe(TestComponent);
     expect(middleware).toHaveBeenCalled();
+    expect(hook).toHaveBeenCalledWith({ ok: true });
     expect(callback).toHaveBeenCalled();
   });
 
@@ -121,10 +128,12 @@ describe('ComponentRegistry - Basic Functionality', () => {
     registry.mount('TestComponent', 'container', { title: 'Mounted' });
     registry.unmount('container');
 
-    expect(render).toHaveBeenCalledWith(expect.objectContaining({
-      component: 'TestComponent',
-      containerId: 'container',
-    }));
+    expect(render).toHaveBeenCalledWith(
+      expect.objectContaining({
+        component: 'TestComponent',
+        containerId: 'container',
+      })
+    );
     expect(unmount).toHaveBeenCalledWith('container');
   });
 

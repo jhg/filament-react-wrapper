@@ -6,14 +6,22 @@ describe('EventSystem', () => {
     const events = new EventSystem();
     const order: string[] = [];
 
-    events.on('change', value => {
-      order.push(`high:${String(value)}`);
-      return `${String(value)}!`;
-    }, 20);
-    events.on('change', value => {
-      order.push(`low:${String(value)}`);
-      return `${String(value)}?`;
-    }, 1);
+    events.on(
+      'change',
+      value => {
+        order.push(`high:${String(value)}`);
+        return `${String(value)}!`;
+      },
+      20
+    );
+    events.on(
+      'change',
+      value => {
+        order.push(`low:${String(value)}`);
+        return `${String(value)}?`;
+      },
+      1
+    );
 
     expect(events.emit('change', 'value')).toBe('value!?');
     expect(order).toEqual(['high:value', 'low:value!']);
@@ -22,7 +30,9 @@ describe('EventSystem', () => {
 
   it('supports removal, event checks, and resilient listener errors', () => {
     const events = new EventSystem();
-    const listener = vi.fn(() => { throw new Error('boom'); });
+    const listener = vi.fn(() => {
+      throw new Error('boom');
+    });
     events.on('failure', listener);
 
     expect(events.hasListeners('failure')).toBe(true);

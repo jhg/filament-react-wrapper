@@ -40,10 +40,10 @@ afterEach(() => {
 beforeEach(() => {
   // Clear all mocks before each test
   vi.clearAllMocks();
-  
+
   // Reset DOM
   document.body.innerHTML = '';
-  
+
   // Reset window.ReactWrapper if it exists
   if (typeof window !== 'undefined') {
     delete (window as Record<string, unknown>).ReactWrapper;

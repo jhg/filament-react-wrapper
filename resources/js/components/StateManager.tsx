@@ -371,7 +371,7 @@ export class GlobalStateManager implements GlobalStateManagerInterface {
   /**
    * Subscribes to changes at the specified path
    * @param path Dot-notation path to subscribe to
-   * @param callback Function to call when value changes
+   * @param callback Callback invoked when the value changes
    * @returns Unsubscribe function
    */
   subscribe(path: string, callback: (value: unknown) => void): () => void {
