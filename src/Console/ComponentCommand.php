@@ -132,9 +132,11 @@ use HadyFayed\\ReactWrapper\\Widgets\\ReactWidget;
 
 class {$name}Widget extends ReactWidget
 {
-    protected string \$componentName = '{$name}';
-
-    protected static string \$view = 'react-wrapper::filament.widgets.react-widget';
+    public function __construct()
+    {
+        parent::__construct();
+        \$this->withComponent('{$name}');
+    }
 
     public function getData(): array
     {
@@ -144,13 +146,6 @@ class {$name}Widget extends ReactWidget
         ];
     }
 
-    protected function getViewData(): array
-    {
-        return [
-            'componentName' => \$this->componentName,
-            'props' => \$this->getData(),
-        ];
-    }
 }
 PHP;
 
@@ -179,21 +174,17 @@ use HadyFayed\\ReactWrapper\\Forms\\Components\\ReactField;
 
 class {$name}Field extends ReactField
 {
-    protected string \$componentName = '{$name}';
-
-    protected string \$view = 'filament.forms.components.react-field';
-
-    public static function make(string \$name): static
+    public static function make(?string \$name = null): static
     {
-        return parent::make(\$name);
+        return parent::make(\$name)->component('{$name}');
     }
 
     public function getComponentProps(): array
     {
-        return [
+        return array_merge(parent::getComponentProps(), [
             'title' => 'Field Title',
             // Add your props here
-        ];
+        ]);
     }
 }
 PHP;

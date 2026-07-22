@@ -101,8 +101,14 @@ export class FilamentReactAdapter {
               // Emit custom event for Filament/Livewire integration
               if (statePath) {
                 element.dispatchEvent(
-                  new CustomEvent('react-data-change', {
-                    detail: { data, statePath },
+                  new CustomEvent('react-data-changed', {
+                    detail: {
+                      data,
+                      statePath,
+                      property: statePath,
+                      fieldName: statePath,
+                      value: data,
+                    },
                     bubbles: true,
                   })
                 );
@@ -224,7 +230,7 @@ export class FilamentReactAdapter {
   static createFormField(options: {
     component: string;
     statePath: string;
-    props?: Record<string, any>;
+    props?: Record<string, unknown>;
     containerId?: string;
   }): HTMLElement {
     const { component, statePath, props = {}, containerId = `react-${Date.now()}` } = options;

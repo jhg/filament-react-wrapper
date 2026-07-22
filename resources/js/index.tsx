@@ -100,9 +100,9 @@ export function bootstrap() {
 // Make functionality globally available with namespacing
 if (typeof window !== 'undefined') {
   // Initialize namespace
-  (window as any).FilamentReact = (window as any).FilamentReact || {};
+  const filamentReact = window.FilamentReact || {};
 
-  (window as any).FilamentReact.ReactWrapper = {
+  filamentReact.ReactWrapper = {
     componentRegistry,
     universalReactRenderer,
     globalStateManager,
@@ -114,8 +114,9 @@ if (typeof window !== 'undefined') {
   };
 
   // Backward compatibility
-  (window as any).ReactWrapper = (window as any).FilamentReact.ReactWrapper;
-  (window as any).ReactComponentRegistry = componentRegistry;
+  window.FilamentReact = filamentReact;
+  window.ReactWrapper = filamentReact.ReactWrapper;
+  window.ReactComponentRegistry = componentRegistry;
 
   // Auto-bootstrap
   bootstrap();

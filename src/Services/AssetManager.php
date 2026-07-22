@@ -326,12 +326,37 @@ class AssetManager
 
         if ($this->isViteDevServerRunning()) {
             $devServerUrl = config('react-wrapper.vite.dev_server_url', 'http://localhost:5173');
-            return rtrim($devServerUrl, '/') . '/resources/js/index.tsx';
+            foreach ($this->getMainEntryPaths() as $entryPath) {
+                if (File::exists(base_path($entryPath))) {
+                    return rtrim($devServerUrl, '/') . '/' . ltrim($entryPath, '/');
+                }
+            }
+
+            return null;
         }
 
         // Try Vite manifest
-        $mainAssetUrl = $this->getAssetUrl('resources/js/index.tsx');
-        return $mainAssetUrl;
+        foreach ($this->getMainEntryPaths() as $entryPath) {
+            $mainAssetUrl = $this->getAssetUrl($entryPath);
+            if ($mainAssetUrl) {
+                return $mainAssetUrl;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Published applications load the bootstrap entrypoint, while older
+     * installations may still expose the package source at the legacy path.
+     */
+    protected function getMainEntryPaths(): array
+    {
+        return [
+            'resources/js/bootstrap-react.tsx',
+            'resources/js/react-wrapper/index.tsx',
+            'resources/js/index.tsx',
+        ];
     }
 
     /**

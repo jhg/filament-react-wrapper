@@ -30,8 +30,25 @@ class FilamentAssetRegistrar
         ];
 
         foreach ($filamentComponents as $component => $config) {
-            $this->registerComponentIfExists($component, $config);
+            foreach ($this->getCandidatePaths($config['js']) as $jsPath) {
+                if (file_exists(base_path($jsPath))) {
+                    $this->registerComponentIfExists($component, array_merge($config, ['js' => $jsPath]));
+                    break;
+                }
+            }
         }
+    }
+
+    /**
+     * The Composer workflow publishes the package below react-wrapper, while
+     * older applications may have copied the adapter into their own source.
+     */
+    protected function getCandidatePaths(string $path): array
+    {
+        return [
+            str_replace('resources/js/', 'resources/js/react-wrapper/', $path),
+            $path,
+        ];
     }
 
     /**

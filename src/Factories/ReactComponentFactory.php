@@ -5,6 +5,7 @@ namespace HadyFayed\ReactWrapper\Factories;
 use HadyFayed\ReactWrapper\Contracts\ReactComponentInterface;
 use HadyFayed\ReactWrapper\Services\ReactComponentRegistry;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class ReactComponentFactory
@@ -46,6 +47,38 @@ class ReactComponentFactory
         }
 
         return $component;
+    }
+
+    /**
+     * Render a component container for the Blade directives.
+     *
+     * Blade consumers do not need a PHP component class; the published
+     * JavaScript registry resolves the component name in the browser.
+     */
+    public function render(mixed $name, array $props = [], array $options = []): string
+    {
+        $componentName = is_string($name) ? $name : (string) $name;
+        if ($componentName === '') {
+            throw new InvalidArgumentException('A React component name is required.');
+        }
+
+        $containerId = $options['container_id'] ?? 'react-' . Str::lower(Str::random(12));
+        $attributes = [
+            'id' => $containerId,
+            'data-react-component' => $componentName,
+            'data-react-props' => json_encode($props, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT),
+        ];
+
+        if (isset($options['state_path'])) {
+            $attributes['data-react-state-path'] = (string) $options['state_path'];
+        }
+
+        $html = '<div';
+        foreach ($attributes as $attribute => $value) {
+            $html .= ' ' . e($attribute) . '="' . e((string) $value) . '"';
+        }
+
+        return $html . '></div>';
     }
 
     /**

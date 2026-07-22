@@ -35,7 +35,8 @@
     /* Path aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./resources/js/*"]
+      "@/*": ["./resources/js/*"],
+      "@react-wrapper": ["./resources/js/index.tsx"]
     }
   },
   "include": [

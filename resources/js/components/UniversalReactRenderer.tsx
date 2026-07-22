@@ -298,5 +298,5 @@ if (typeof window !== 'undefined') {
 
 // Make renderer available globally
 if (typeof window !== 'undefined') {
-  (window as any).universalReactRenderer = universalReactRenderer;
+  window.universalReactRenderer = universalReactRenderer;
 }

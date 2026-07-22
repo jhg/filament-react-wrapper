@@ -1,4 +1,12 @@
 import React, { createContext, useContext, ReactNode } from 'react';
+import {
+  getNestedValue,
+  isStateRecord,
+  notifySubscribers,
+  setNestedValue,
+  StateRecord,
+  StateSubscribers,
+} from '../utils/state';
 
 // Enhanced State Manager with multiple strategy support
 export interface StateManagerConfig {
@@ -9,7 +17,7 @@ export interface StateManagerConfig {
 }
 
 export interface StateManagerContextType {
-  state: any;
+  state: StateRecord;
   setState: (path: string, value: unknown) => void;
   getState: (path: string) => unknown;
   subscribe: (path: string, callback: (value: unknown) => void) => () => void;
@@ -19,8 +27,8 @@ export interface StateManagerContextType {
 
 // Context-based state manager (existing implementation)
 class ContextStateManager {
-  private state: any = {};
-  private subscribers: Map<string, Set<(value: unknown) => void>> = new Map();
+  private state: StateRecord = {};
+  private subscribers: StateSubscribers = new Map();
   private persistence: boolean;
   private namespace: string;
 
@@ -34,44 +42,17 @@ class ContextStateManager {
   }
 
   setState(path: string, value: unknown): void {
-    const keys = path.split('.');
-    let current = this.state;
-
-    for (let i = 0; i < keys.length - 1; i++) {
-      const key = keys[i];
-      if (key && !(key in current)) {
-        current[key] = {};
-      }
-      if (key) {
-        current = current[key];
-      }
-    }
-
-    const lastKey = keys[keys.length - 1];
-    if (lastKey) {
-      current[lastKey] = value;
-    }
+    this.state = setNestedValue(this.state, path, value);
 
     if (this.persistence) {
       this.persistState();
     }
 
-    this.notifySubscribers(path, value);
+    notifySubscribers(this.subscribers, this.state, path, value);
   }
 
   getState(path: string): unknown {
-    const keys = path.split('.');
-    let current = this.state;
-
-    for (const key of keys) {
-      if (current && typeof current === 'object' && key && key in current) {
-        current = current[key];
-      } else {
-        return undefined;
-      }
-    }
-
-    return current;
+    return getNestedValue(this.state, path);
   }
 
   subscribe(path: string, callback: (value: unknown) => void): () => void {
@@ -80,6 +61,8 @@ class ContextStateManager {
     }
 
     this.subscribers.get(path)!.add(callback);
+
+    callback(getNestedValue(this.state, path));
 
     return () => {
       const pathSubscribers = this.subscribers.get(path);
@@ -110,7 +93,8 @@ class ContextStateManager {
     try {
       const persisted = localStorage.getItem(this.namespace);
       if (persisted) {
-        this.state = JSON.parse(persisted);
+        const parsed: unknown = JSON.parse(persisted);
+        if (isStateRecord(parsed)) this.state = parsed;
       }
     } catch (error) {
       console.warn('Failed to load persisted state:', error);
@@ -124,75 +108,64 @@ class ContextStateManager {
       console.warn('Failed to persist state:', error);
     }
   }
-
-  private notifySubscribers(path: string, value: unknown): void {
-    const pathSubscribers = this.subscribers.get(path);
-    if (pathSubscribers) {
-      pathSubscribers.forEach(callback => callback(value));
-    }
-  }
 }
 
 // Zustand-based state manager
+interface ZustandState {
+  state: StateRecord;
+  setState: (path: string, value: unknown) => void;
+  getState: (path: string) => unknown;
+  reset: () => void;
+  batchUpdate: (updates: Array<{ path: string; value: unknown }>) => void;
+}
+
+interface ZustandStore {
+  getState: () => ZustandState;
+  subscribe: (listener: (state: ZustandState) => void) => () => void;
+}
+
 class ZustandStateManager {
-  private store: any;
-  private persistence: boolean;
+  private store!: ZustandStore;
   private namespace: string;
 
   constructor(config: StateManagerConfig) {
-    this.persistence = config.persistence;
     this.namespace = config.namespace || 'filament-react-state';
 
     this.initializeZustandStore(config);
-    // Silence unused variable warning
-    void this.persistence;
   }
 
   private initializeZustandStore(config: StateManagerConfig): void {
     try {
       // Dynamic import to avoid breaking if Zustand is not installed
-      const { create } = require('zustand');
-      const { devtools, persist } = require('zustand/middleware');
+      const runtimeRequire = require as unknown as (moduleName: string) => Record<string, unknown>;
+      const zustand = runtimeRequire('zustand');
+      const middleware = runtimeRequire('zustand/middleware');
+      const create = zustand.create as (
+        creator: (set: SetState, get: GetState) => ZustandState
+      ) => ZustandStore;
+      const devtools = middleware.devtools as (
+        creator: unknown,
+        options: { name: string }
+      ) => unknown;
+      const persist = middleware.persist as (
+        creator: unknown,
+        options: { name: string }
+      ) => unknown;
 
-      let storeCreator = (set: any, get: any) => ({
+      type SetState = (
+        updater: ((state: ZustandState) => ZustandState) | Partial<ZustandState>
+      ) => void;
+      type GetState = () => ZustandState;
+
+      let storeCreator = (set: SetState, get: GetState): ZustandState => ({
         state: {},
         setState: (path: string, value: unknown) => {
-          set((state: any) => {
-            const newState = { ...state };
-            const keys = path.split('.');
-            let current = newState;
-
-            for (let i = 0; i < keys.length - 1; i++) {
-              const key = keys[i];
-              if (key && !(key in current)) {
-                current[key] = {};
-              }
-              if (key) {
-                current = current[key];
-              }
-            }
-
-            const lastKey = keys[keys.length - 1];
-            if (lastKey) {
-              current[lastKey] = value;
-            }
-            return { state: newState.state };
+          set((state: ZustandState) => {
+            return { ...state, state: setNestedValue(state.state, path, value) };
           });
         },
         getState: (path: string) => {
-          const state = get().state;
-          const keys = path.split('.');
-          let current = state;
-
-          for (const key of keys) {
-            if (current && typeof current === 'object' && key in current) {
-              current = current[key];
-            } else {
-              return undefined;
-            }
-          }
-
-          return current;
+          return getNestedValue(get().state, path);
         },
         reset: () => set({ state: {} }),
         batchUpdate: (updates: Array<{ path: string; value: unknown }>) => {
@@ -205,13 +178,13 @@ class ZustandStateManager {
       if (config.persistence) {
         storeCreator = persist(storeCreator, {
           name: this.namespace,
-        });
+        }) as (set: SetState, get: GetState) => ZustandState;
       }
 
       if (config.devtools) {
         storeCreator = devtools(storeCreator, {
           name: 'FilamentReactState',
-        });
+        }) as (set: SetState, get: GetState) => ZustandState;
       }
 
       this.store = create(storeCreator);
@@ -230,7 +203,7 @@ class ZustandStateManager {
   }
 
   subscribe(path: string, callback: (value: unknown) => void): () => void {
-    return this.store.subscribe((_state: any) => {
+    return this.store.subscribe(() => {
       const value = this.getState(path);
       callback(value);
     });
@@ -256,7 +229,7 @@ export class StateManagerFactory {
       } else {
         manager = new ContextStateManager(config);
       }
-    } catch (error) {
+    } catch {
       console.warn(
         'Failed to create state manager with strategy:',
         config.strategy,
@@ -266,7 +239,7 @@ export class StateManagerFactory {
     }
 
     return {
-      state: manager.getState(''),
+      state: manager.getState('') as StateRecord,
       setState: manager.setState.bind(manager),
       getState: manager.getState.bind(manager),
       subscribe: manager.subscribe.bind(manager),

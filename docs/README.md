@@ -1,80 +1,36 @@
-# React Wrapper Documentation
+# Documentation
 
-Welcome to the comprehensive documentation for React Wrapper - an advanced React component integration system for Laravel/Filament applications.
+Use the guides in this order if you are new to the package:
 
-## 📚 Documentation Structure
+1. [Installation](installation.md)
+2. [Quick start](quick-start.md)
+3. [Component registry](component-registry.md)
+4. [Filament fields and widgets](../README.md#filament-fields-and-widgets)
 
-### Getting Started
-- [Installation Guide](./installation.md) - Complete setup instructions
-- [Quick Start](./quick-start.md) - Get up and running in 5 minutes
-- [Configuration](./configuration.md) - Configuration options and settings
+Reference and feature guides:
 
-### Core Concepts
-- [Component Registry](./component-registry.md) - Registering and managing React components
-- [State Management](./state-management.md) - Advanced state handling with persistence
-- [Universal Renderer](./universal-renderer.md) - Rendering components anywhere
+- [PHP API](api/php.md)
+- [TypeScript API](api/typescript.md)
+- [Configuration](api/config.md)
+- [State management](state-management.md)
+- [Code splitting](code-splitting.md)
+- [Component versioning](versioning.md)
+- [Developer tools](dev-tools.md)
+- [Testing](testing.md)
 
-### Advanced Features
-- [Code Splitting](./code-splitting.md) - Smart bundling and optimization strategies
-- [Component Versioning](./versioning.md) - Version management and migrations
-- [Developer Tools](./dev-tools.md) - Debugging and performance monitoring
+## Runtime model
 
-### Integration Guides
-- [Laravel Integration](./laravel-integration.md) - Deep Laravel framework integration
-- [Filament Integration](./filament-integration.md) - Filament admin panel components
-- [Testing Guide](./testing.md) - Comprehensive testing strategies
+The Composer package owns the Laravel, Blade, Filament, Livewire, registry, asset, and state-integration pieces. The package JavaScript is published into `resources/js/react-wrapper/` and loaded by the application’s normal Vite entrypoint through `resources/js/bootstrap-react.tsx`.
 
-### API Reference
-- [TypeScript API](./api/typescript.md) - Complete TypeScript API reference
-- [PHP API](./api/php.md) - Laravel/PHP API documentation
-- [Configuration Reference](./api/config.md) - All configuration options
+There is no package-specific Filament panel plugin and no custom Vite plugin. The application still uses its own standard `laravel-vite-plugin` and `@vitejs/plugin-react` when it needs Laravel asset compilation.
 
-### Development & Deployment
-- [Development Workflow](./development.md) - Development best practices
-- [Build System](./build-system.md) - Advanced build and optimization
-- [Deployment Guide](./deployment.md) - Production deployment strategies
+## Compatibility
 
-### Migration & Troubleshooting
-- [Migration Guide](./migration.md) - Upgrading from previous versions
-- [Troubleshooting](./troubleshooting.md) - Common issues and solutions
-- [FAQ](./faq.md) - Frequently asked questions
+GitHub Actions resolves explicit valid combinations rather than a Cartesian product. The current matrix covers Filament 3/4 with Livewire 3, Filament 5 with Livewire 4, Laravel 11/12/13, Node 20/22/24, and PHP 8.2–8.5. See [.github/workflows/ci.yml](../.github/workflows/ci.yml).
 
-## 🚀 Quick Navigation
+## External references
 
-### For New Users
-Start with [Installation](./installation.md) → [Quick Start](./quick-start.md) → [Component Registry](./component-registry.md)
-
-### For Laravel Developers
-Check out [Laravel Integration](./laravel-integration.md) → [Filament Integration](./filament-integration.md)
-
-### For React Developers
-Explore [State Management](./state-management.md) → [Code Splitting](./code-splitting.md) → [Developer Tools](./dev-tools.md)
-
-### For Enterprise Users
-Review [Versioning](./versioning.md) → [Testing](./testing.md) → [Deployment](./deployment.md)
-
-## 🎯 Key Features Highlights
-
-- 🧪 **Comprehensive Testing** - 90%+ test coverage with enterprise CI/CD
-- 🛠️ **Advanced DevTools** - Real-time debugging and performance monitoring
-- ⚡ **Smart Code Splitting** - Intelligent bundling with prefetching
-- 🔄 **Component Versioning** - Seamless migrations and compatibility
-- 🚀 **Enterprise Ready** - Production-grade infrastructure and security
-
-## 📖 External Resources
-
-- [Storybook Documentation](https://storybook.js.org/) - Interactive component development
-- [Laravel Documentation](https://laravel.com/docs) - Laravel framework guide
-- [Filament Documentation](https://filamentphp.com/docs) - Filament admin panel
-- [React Documentation](https://react.dev/) - React framework guide
-
-## 🤝 Community & Support
-
-- 📚 [GitHub Repository](https://github.com/hadyfayed/filament-react-wrapper)
-- 💬 [GitHub Discussions](https://github.com/hadyfayed/filament-react-wrapper/discussions)
-- 🐛 [Issue Tracker](https://github.com/hadyfayed/filament-react-wrapper/issues)
-- 📧 [Email Support](mailto:support@hadyfayed.com)
-
----
-
-**Happy coding with React Wrapper! 🎉**
+- [Laravel](https://laravel.com/docs)
+- [Filament](https://filamentphp.com/docs)
+- [Livewire](https://livewire.laravel.com/docs)
+- [React](https://react.dev/)

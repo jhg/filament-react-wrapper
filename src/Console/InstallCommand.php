@@ -56,26 +56,23 @@ class InstallCommand extends Command
     {
         $this->info('📦 Installing JavaScript dependencies...');
 
-        $dependencies = [
-            'react',
-            'react-dom',
+        $runtimeDependencies = ['react', 'react-dom'];
+        $developmentDependencies = [
             '@types/react',
             '@types/react-dom',
-            '@vitejs/plugin-react'
+            '@vitejs/plugin-react',
+            'laravel-vite-plugin',
         ];
 
         if ($this->option('zustand')) {
-            $dependencies[] = 'zustand';
+            $developmentDependencies[] = 'zustand';
             $this->info('   • Adding Zustand for state management');
         }
 
-        $command = 'npm install ' . implode(' ', $dependencies);
-        
-        if ($this->option('dev')) {
-            $command .= ' --save-dev';
+        $result = Process::run('npm install ' . implode(' ', $runtimeDependencies));
+        if ($result->successful()) {
+            $result = Process::run('npm install --save-dev ' . implode(' ', $developmentDependencies));
         }
-
-        $result = Process::run($command);
         
         if (!$result->successful()) {
             $this->error('Failed to install JavaScript dependencies');
@@ -108,13 +105,20 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': '/resources/js',
+            '@react-wrapper': '/resources/js/react-wrapper',
         },
     },
 });
 JS;
 
-        File::put(base_path('vite.config.js'), $viteConfig);
-        $this->info('   ✅ Vite configured with React support');
+        $vitePath = base_path('vite.config.js');
+        if (File::exists($vitePath) && !$this->option('force')) {
+            $this->warn('   ℹ️  vite.config.js already exists; leaving it unchanged. Add the alias shown in the documentation.');
+            return;
+        }
+
+        File::put($vitePath, $viteConfig);
+        $this->info('   ✅ Vite configured with React support and @react-wrapper alias');
     }
 
     private function setupTypeScript()
@@ -136,7 +140,12 @@ JS;
                 'resolveJsonModule' => true,
                 'isolatedModules' => true,
                 'noEmit' => true,
-                'jsx' => 'react-jsx'
+                'jsx' => 'react-jsx',
+                'baseUrl' => '.',
+                'paths' => [
+                    '@/*' => ['./resources/js/*'],
+                    '@react-wrapper' => ['./resources/js/react-wrapper/index.tsx'],
+                ],
             ],
             'include' => [
                 'resources/js/**/*',
@@ -148,7 +157,13 @@ JS;
             ]
         ];
 
-        File::put(base_path('tsconfig.json'), json_encode($tsConfig, JSON_PRETTY_PRINT));
+        $tsConfigPath = base_path('tsconfig.json');
+        if (File::exists($tsConfigPath) && !$this->option('force')) {
+            $this->warn('   ℹ️  tsconfig.json already exists; leaving it unchanged.');
+            return;
+        }
+
+        File::put($tsConfigPath, json_encode($tsConfig, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         $this->info('   ✅ TypeScript configuration created');
     }
 
@@ -297,7 +312,13 @@ TSX;
 
         $this->call('vendor:publish', [
             '--provider' => 'HadyFayed\\ReactWrapper\\ReactWrapperServiceProvider',
-            '--tag' => 'config',
+            '--tag' => 'react-wrapper-config',
+            '--force' => $this->option('force')
+        ]);
+
+        $this->call('vendor:publish', [
+            '--provider' => 'HadyFayed\\ReactWrapper\\ReactWrapperServiceProvider',
+            '--tag' => 'react-wrapper',
             '--force' => $this->option('force')
         ]);
 
@@ -308,26 +329,14 @@ TSX;
     {
         $this->info('🎨 Setting up Filament integration...');
 
-        // Add Filament hook for React refresh in development
-        $hookCode = <<<'PHP'
-// Add to your FilamentServiceProvider or AppServiceProvider
-if (app()->environment('local')) {
-    FilamentView::registerRenderHook(
-        name: PanelsRenderHook::HEAD_START,
-        hook: fn() => app(Vite::class)->reactRefresh(),
-    );
-}
-PHP;
-
-        $this->info('   ℹ️  Add this code to your service provider:');
-        $this->line($hookCode);
+        $this->info('   ℹ️  No Filament panel plugin or manual render hook is required.');
         $this->info('   ✅ Filament integration ready');
     }
 
     private function showNextSteps()
     {
         $this->info('🎉 Next steps:');
-        $this->line('1. Add the Filament hook to your service provider');
+        $this->line('1. Import ./bootstrap-react from your application Vite entrypoint');
         $this->line('2. Run: npm run dev');
         $this->line('3. Create your first component with: php artisan filament-react:component MyComponent');
         

@@ -10,19 +10,39 @@ interface GlobalStateManagerInterface {
 }
 
 declare global {
+  interface LivewireComponent {
+    call(method: string, ...args: unknown[]): unknown;
+    set(path: string, value: unknown): unknown;
+    get(path: string): unknown;
+  }
+
+  interface LivewireRuntime {
+    find(id: string): LivewireComponent | undefined;
+  }
   interface Window {
     // Namespaced globals for better organization
     FilamentReact?: {
-      ReactWrapper?: unknown;
+      ReactWrapper?: Record<string, unknown>;
+      registerComponent?: unknown;
+      getComponent?: unknown;
+      listComponents?: unknown;
+      mountIsland?: unknown;
+      autoMountIslands?: unknown;
+      createComponent?: unknown;
+      registerComponents?: unknown;
       WorkflowCanvas?: unknown;
     };
 
     // Legacy compatibility globals
     ReactComponentRegistry?: unknown;
-    ReactWrapper?: unknown;
+    ReactWrapper?: Record<string, unknown>;
     ReactWrapperConfig?: unknown;
+    universalReactRenderer?: unknown;
+    Livewire?: LivewireRuntime;
+    FilamentBridge?: unknown;
+    $filament?: unknown;
     WorkflowCanvas?: unknown;
-    workflowDataSync?: (statePath: string, data: any) => void;
+    workflowDataSync?: (statePath: string, data: unknown) => void;
     __REACT_WRAPPER_DEV_TOOLS__?: unknown;
     globalStateManager?: GlobalStateManagerInterface;
     statePersistenceService?: unknown;

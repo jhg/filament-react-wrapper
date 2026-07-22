@@ -177,7 +177,7 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'resources/js/index.tsx'),
       name: 'ReactWrapper',
-      fileName: 'react-wrapper.umd',
+      fileName: 'react-wrapper',
       formats: ['umd']
     },
     rollupOptions: {
@@ -273,7 +273,9 @@ export default defineConfig({
     }
     
     if (this.buildTarget === 'all' || this.buildTarget === 'umd') {
-      requiredFiles.push('dist/umd/react-wrapper.umd.js');
+      // With package.json `type: module`, Vite emits the UMD bundle as CJS
+      // (`.umd.cjs`) so Node does not interpret it as an ES module.
+      requiredFiles.push('dist/umd/react-wrapper.umd.cjs');
     }
     
     // Always check for package.json

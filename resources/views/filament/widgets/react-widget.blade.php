@@ -56,14 +56,15 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const container = document.getElementById('{{ $containerId }}');
+        const container = document.getElementById(@js($containerId));
         
         if (!container) return;
         
         // Enhanced error handling
         container.addEventListener('react-error', function(event) {
             console.error('React Widget Error:', event.detail);
-            
+            const errorMessage = event.detail?.message || event.detail?.error || 'Unknown error';
+
             const errorDiv = document.createElement('div');
             errorDiv.className = 'bg-red-50 border border-red-200 rounded-md p-4';
             errorDiv.innerHTML = `
@@ -79,18 +80,19 @@
                         </h3>
                         <div class="mt-2 text-sm text-red-700">
                             <p>Failed to load widget: {{ $componentName }}</p>
-                            <p class="text-xs mt-1">${event.detail.message || 'Unknown error'}</p>
+                            <p class="react-error-message text-xs mt-1"></p>
                         </div>
                     </div>
                 </div>
             `;
+            errorDiv.querySelector('.react-error-message')?.append(document.createTextNode(String(errorMessage)));
             
             container.appendChild(errorDiv);
         });
         
         // Success handler
         container.addEventListener('react-loaded', function(event) {
-            console.log('React Widget Loaded:', '{{ $componentName }}');
+            console.log('React Widget Loaded:', @js($componentName));
             
             // Remove loading indicator
             const loading = container.querySelector('.react-widget-loading');
@@ -106,7 +108,7 @@
         function startPolling() {
             if (pollingInterval) clearInterval(pollingInterval);
             
-            const interval = '{{ $pollingInterval }}';
+            const interval = @js($pollingInterval);
             const ms = interval.endsWith('s') ? 
                 parseInt(interval) * 1000 : 
                 parseInt(interval);
@@ -138,7 +140,7 @@
         
         // Widget refresh handler
         window.addEventListener('widget-refreshed', function(event) {
-            if (event.detail.containerId === '{{ $containerId }}') {
+            if (event.detail.containerId === @js($containerId)) {
                 container.dispatchEvent(new CustomEvent('widget-data-updated', {
                     detail: event.detail.data
                 }));

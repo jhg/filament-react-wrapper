@@ -6,6 +6,13 @@ import React, {
   useEffect,
   ReactNode,
 } from 'react';
+import {
+  getNestedValue,
+  isStateRecord,
+  notifySubscribers as notifyStateSubscribers,
+  setNestedValue,
+  type StateSubscribers,
+} from '../utils/state';
 
 // Forward declaration of GlobalStateManager interface for use in Window interface
 interface GlobalStateManagerInterface {
@@ -18,7 +25,7 @@ interface GlobalStateManagerInterface {
 // Extend Window interface for global properties
 declare global {
   interface Window {
-    workflowDataSync?: (statePath: string, data: any) => void;
+    workflowDataSync?: (statePath: string, data: unknown) => void;
     globalStateManager?: GlobalStateManagerInterface;
   }
 }
@@ -70,62 +77,10 @@ function stateReducer(state: StateManagerState, action: StateAction): StateManag
       return newState;
     }
     case 'RESET_STATE':
-      return (action.payload as StateManagerState) || ({} as StateManagerState);
+      return isStateRecord(action.payload) ? action.payload : {};
     default:
       return state;
   }
-}
-
-// Helper functions for nested state management
-function getNestedValue<T = unknown>(obj: Record<string, unknown>, path: string): T | undefined {
-  if (!path) return obj as T;
-  if (!obj || typeof obj !== 'object') return undefined;
-
-  return path
-    .split('.')
-    .reduce(
-      (current: unknown, key: string) =>
-        current && typeof current === 'object'
-          ? (current as Record<string, unknown>)[key]
-          : undefined,
-      obj as unknown
-    ) as T;
-}
-
-function setNestedValue(
-  obj: Record<string, unknown>,
-  path: string,
-  value: unknown
-): Record<string, unknown> {
-  if (!path) return value as Record<string, any>;
-
-  const keys = path.split('.');
-  if (keys.length === 0) return obj;
-
-  // Create a deep clone of the object to avoid mutations
-  const result = { ...obj } as Record<string, any>;
-  let current = result;
-
-  for (let i = 0; i < keys.length - 1; i += 1) {
-    const key = keys[i];
-    if (key === undefined || key === '') continue;
-
-    // Check if we need to initialize this level
-    const shouldInitialize =
-      !(key in current) || current[key] === null || typeof current[key] !== 'object';
-
-    // Either initialize or clone the existing object
-    current[key] = shouldInitialize ? {} : { ...(current[key] as Record<string, unknown>) };
-    current = current[key] as Record<string, unknown>;
-  }
-
-  // Set the value at the final key
-  const lastKey = keys[keys.length - 1];
-  if (lastKey !== undefined && lastKey !== '') {
-    current[lastKey] = value;
-  }
-
-  return result;
 }
 
 // Create context for state manager
@@ -145,7 +100,7 @@ export interface StateManagerProviderProps {
 const StateManagerProviderComponent: React.FC<StateManagerProviderProps> = React.memo(
   ({ children, initialState = {}, onStateChange, syncPath }) => {
     const [state, dispatch] = useReducer(stateReducer, initialState);
-    const subscribersRef = React.useRef<Map<string, Set<(value: unknown) => void>>>(new Map());
+    const subscribersRef = React.useRef<StateSubscribers>(new Map());
 
     // Memoize state to prevent unnecessary re-renders
     const memoizedState = React.useMemo(() => state, [state]);
@@ -180,18 +135,16 @@ const StateManagerProviderComponent: React.FC<StateManagerProviderProps> = React
     const notifySubscribers = React.useCallback(() => {
       subscribersRef.current.forEach((callbacks, path) => {
         if (path && callbacks.size > 0) {
-          try {
-            const value = getNestedValue(memoizedState, path);
-            callbacks.forEach(callback => {
-              try {
-                callback(value);
-              } catch (error) {
-                console.error(`Error in subscriber callback for path ${path}:`, error);
-              }
-            });
-          } catch (error) {
-            console.error(`Error processing subscribers for path ${path}:`, error);
-          }
+          notifyStateSubscribers(
+            subscribersRef.current,
+            memoizedState,
+            path,
+            getNestedValue(memoizedState, path),
+            (error, subscriberPath) => {
+              console.error(`Error in subscriber callback for path ${subscriberPath}:`, error);
+            },
+            false
+          );
         }
       });
     }, [memoizedState]);
@@ -472,36 +425,15 @@ export class GlobalStateManager implements GlobalStateManagerInterface {
     this._notifyingPaths.add(path);
 
     try {
-      // Notify exact path subscribers
-      const exactSubscribers = this.subscribers.get(path);
-      if (exactSubscribers) {
-        exactSubscribers.forEach(callback => {
-          try {
-            callback(value);
-          } catch (error) {
-            console.error(`Error in subscriber callback for path ${path}:`, error);
-          }
-        });
-      }
-
-      // Notify parent path subscribers
-      const pathParts = path.split('.');
-      for (let i = pathParts.length - 1; i > 0; i -= 1) {
-        const parentPath = pathParts.slice(0, i).join('.');
-        if (!this._notifyingPaths.has(parentPath)) {
-          const parentSubscribers = this.subscribers.get(parentPath);
-          if (parentSubscribers) {
-            const parentValue = this.getState(parentPath);
-            parentSubscribers.forEach(callback => {
-              try {
-                callback(parentValue);
-              } catch (error) {
-                console.error(`Error in subscriber callback for parent path ${parentPath}:`, error);
-              }
-            });
-          }
+      notifyStateSubscribers(
+        this.subscribers,
+        this._state,
+        path,
+        value,
+        (error, subscriberPath) => {
+          console.error(`Error in subscriber callback for path ${subscriberPath}:`, error);
         }
-      }
+      );
     } finally {
       this._notifyingPaths.delete(path);
     }
@@ -522,15 +454,18 @@ export class GlobalStateManager implements GlobalStateManagerInterface {
   resetState(newState?: StateManagerState): void {
     this._state = newState || {};
     // Notify all subscribers of the reset
-    this.subscribers.forEach((callbacks, path) => {
+    this.subscribers.forEach((_, path) => {
       const value = this.getState(path);
-      callbacks.forEach(callback => {
-        try {
-          callback(value);
-        } catch (error) {
-          console.error(`Error in reset callback for path ${path}:`, error);
-        }
-      });
+      notifyStateSubscribers(
+        this.subscribers,
+        this._state,
+        path,
+        value,
+        (error, subscriberPath) => {
+          console.error(`Error in reset callback for path ${subscriberPath}:`, error);
+        },
+        false
+      );
     });
   }
 

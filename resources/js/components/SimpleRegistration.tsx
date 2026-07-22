@@ -1,17 +1,22 @@
 import React from 'react';
 import { componentRegistry } from './ReactComponentRegistry';
+import type {
+  ComponentProps,
+  IComponentDefinition,
+  ReactComponent,
+} from '../interfaces/IComponentRegistry';
 
 // MingleJS-inspired simple component registration
 export interface SimpleComponentConfig {
   lazy?: boolean;
   category?: string;
-  props?: Record<string, any>;
+  props?: ComponentProps;
   middleware?: string[];
 }
 
 // Decorator pattern for component registration
 export function Component(name: string, config: SimpleComponentConfig = {}) {
-  return function <T extends React.ComponentType<any>>(target: T): T {
+  return function <T extends ReactComponent>(target: T): T {
     // Auto-register component when decorator is applied
     componentRegistry.register({
       name,
@@ -34,7 +39,7 @@ export function Component(name: string, config: SimpleComponentConfig = {}) {
 }
 
 // Simple component registration function (alternative to decorator)
-export const registerComponent = <T extends React.ComponentType<any>>(
+export const registerComponent = <T extends ReactComponent>(
   name: string,
   component: T,
   config: SimpleComponentConfig = {}
@@ -66,12 +71,10 @@ export const listComponents = (category?: string) => {
   const components = componentRegistry.getAll();
 
   if (category) {
-    const filteredComponents: Record<string, any> = {};
-    Object.entries(components)
-      .filter(([_, def]) => def.metadata?.category === category)
-      .forEach(([name, def]) => {
-        filteredComponents[name] = def;
-      });
+    const filteredComponents = new Map<string, IComponentDefinition>();
+    components.forEach((definition, name) => {
+      if (definition.metadata?.category === category) filteredComponents.set(name, definition);
+    });
     return filteredComponents;
   }
 
@@ -79,7 +82,11 @@ export const listComponents = (category?: string) => {
 };
 
 // Island renderer (MingleJS style)
-export const mountIsland = (selector: string, componentName: string, props: any = {}) => {
+export const mountIsland = (
+  selector: string,
+  componentName: string,
+  props: ComponentProps = {}
+) => {
   const element = document.querySelector(selector);
   if (!element) {
     console.warn(`Element with selector "${selector}" not found`);
@@ -96,7 +103,7 @@ export const mountIsland = (selector: string, componentName: string, props: any 
   import('react-dom/client')
     .then(({ createRoot }) => {
       const root = createRoot(element);
-      const Component = component.component as React.ComponentType<any>;
+      const Component = component.component as ReactComponent;
       root.render(React.createElement(Component, props));
     })
     .catch(error => {
@@ -128,14 +135,14 @@ export const autoMountIslands = () => {
 };
 
 // Simple component factory
-export const createComponent = (name: string, render: React.FC<any>) => {
+export const createComponent = (name: string, render: ReactComponent) => {
   const Component = render;
   registerComponent(name, Component);
   return Component;
 };
 
 // Batch component registration
-export const registerComponents = (components: Record<string, React.ComponentType<any>>) => {
+export const registerComponents = (components: Record<string, ReactComponent>) => {
   Object.entries(components).forEach(([name, component]) => {
     registerComponent(name, component);
   });
@@ -143,7 +150,7 @@ export const registerComponents = (components: Record<string, React.ComponentTyp
 
 // Export for global access
 if (typeof window !== 'undefined') {
-  (window as any).FilamentReact = {
+  window.FilamentReact = {
     registerComponent,
     getComponent,
     listComponents,

@@ -159,7 +159,7 @@ class VariableShareService
     /**
      * Generate JavaScript variables injection
      */
-    public function generateJavaScriptInjection(string $componentName = null): string
+    public function generateJavaScriptInjection(?string $componentName = null): string
     {
         $variables = $componentName 
             ? $this->getVariablesForComponent($componentName)

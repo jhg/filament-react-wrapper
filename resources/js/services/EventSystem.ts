@@ -3,12 +3,13 @@
  * Following Single Responsibility Principle
  */
 
-import { IEventSystem } from '../interfaces/IComponentRegistry';
+import { IEventSystem, ComponentCallback } from '../interfaces/IComponentRegistry';
 
 export class EventSystem implements IEventSystem {
-  private listeners: Map<string, Array<{ callback: Function; priority: number }>> = new Map();
+  private listeners: Map<string, Array<{ callback: ComponentCallback; priority: number }>> =
+    new Map();
 
-  on(event: string, callback: Function, priority: number = 10): void {
+  on(event: string, callback: ComponentCallback, priority: number = 10): void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
     }
@@ -19,7 +20,7 @@ export class EventSystem implements IEventSystem {
     this.listeners.get(event)!.sort((a, b) => b.priority - a.priority);
   }
 
-  off(event: string, callback: Function): void {
+  off(event: string, callback: ComponentCallback): void {
     const listeners = this.listeners.get(event);
     if (listeners) {
       const index = listeners.findIndex(l => l.callback === callback);
@@ -29,7 +30,7 @@ export class EventSystem implements IEventSystem {
     }
   }
 
-  emit(event: string, data?: any): any {
+  emit(event: string, data?: unknown): unknown {
     const listeners = this.listeners.get(event);
     if (!listeners) return data;
 

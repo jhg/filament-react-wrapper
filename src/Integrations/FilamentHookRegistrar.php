@@ -94,10 +94,6 @@ class FilamentHookRegistrar
                     console.log("React Wrapper initialized for Filament");
                 }
 
-                // Initialize Filament-specific features
-                if (window.ReactWrapper?.initializeFilament) {
-                    window.ReactWrapper.initializeFilament();
-                }
             });
         </script>';
     }

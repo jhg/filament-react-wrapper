@@ -4,6 +4,7 @@
  */
 
 import { devTools } from './DevTools';
+import type { ComponentProps, ReactComponent } from '../interfaces/IComponentRegistry';
 
 interface ChunkInfo {
   id: string;
@@ -18,7 +19,7 @@ interface ChunkInfo {
 
 interface SplitStrategy {
   name: string;
-  condition: (componentName: string, metadata?: any) => boolean;
+  condition: (componentName: string, metadata?: ComponentProps) => boolean;
   chunkName: (componentName: string) => string;
   preload?: boolean;
   priority?: ChunkPriority;
@@ -60,7 +61,7 @@ class CodeSplittingService {
   private chunks: Map<string, ChunkInfo> = new Map();
   private strategies: SplitStrategy[] = [];
   private prefetchRules: PrefetchRule[] = [];
-  private cache: Map<string, Promise<any>> = new Map();
+  private cache: Map<string, Promise<ReactComponent>> = new Map();
   private loadingQueue: Map<ChunkPriority, Set<string>> = new Map();
   private maxCacheSize: number = 100;
   private maxConcurrentLoads: number = 3;
@@ -93,9 +94,9 @@ class CodeSplittingService {
    */
   async loadComponent(
     componentName: string,
-    metadata: any = {},
+    metadata: ComponentProps = {},
     forceStrategy?: string
-  ): Promise<any> {
+  ): Promise<ReactComponent> {
     const startTime = performance.now();
 
     try {
@@ -221,7 +222,7 @@ class CodeSplittingService {
     this.registerStrategy({
       name: 'vendor-based',
       condition: (componentName, metadata) =>
-        metadata?.external || this.isVendorComponent(componentName),
+        metadata?.external === true || this.isVendorComponent(componentName),
       chunkName: componentName => `vendor-${this.extractVendorName(componentName)}`,
       priority: ChunkPriority.LOW,
     });
@@ -239,7 +240,7 @@ class CodeSplittingService {
     this.registerStrategy({
       name: 'critical-path',
       condition: (componentName, metadata) =>
-        metadata?.critical || this.isCriticalComponent(componentName),
+        metadata?.critical === true || this.isCriticalComponent(componentName),
       chunkName: componentName => `critical-${componentName.toLowerCase()}`,
       priority: ChunkPriority.CRITICAL,
       preload: true,
@@ -254,7 +255,10 @@ class CodeSplittingService {
     });
   }
 
-  private selectStrategy(componentName: string, metadata: any): SplitStrategy | undefined {
+  private selectStrategy(
+    componentName: string,
+    metadata: ComponentProps
+  ): SplitStrategy | undefined {
     // Find the first matching strategy (order matters)
     return this.strategies.find(strategy => strategy.condition(componentName, metadata));
   }
@@ -262,8 +266,8 @@ class CodeSplittingService {
   private async executeStrategy(
     strategy: SplitStrategy,
     componentName: string,
-    _metadata: any
-  ): Promise<any> {
+    _metadata: ComponentProps
+  ): Promise<ReactComponent> {
     const chunkName = strategy.chunkName(componentName);
 
     devTools.startPerformanceMeasure(`chunk-load-${chunkName}`);
@@ -278,7 +282,7 @@ class CodeSplittingService {
 
       devTools.endPerformanceMeasure(`chunk-load-${chunkName}`);
 
-      return module.default || module;
+      return (module.default || module) as ReactComponent;
     } catch (error) {
       devTools.endPerformanceMeasure(`chunk-load-${chunkName}`);
       throw new Error(`Failed to load component ${componentName}: ${error}`);

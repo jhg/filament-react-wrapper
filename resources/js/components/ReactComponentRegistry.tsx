@@ -9,9 +9,10 @@ import {
   IComponentContext,
   IHookManager,
   IEventSystem,
+  ReactComponent,
+  ComponentCallback,
 } from '../interfaces/IComponentRegistry';
 import { EventSystem } from '../services/EventSystem';
-// import { ComponentFactoryManager } from "../factories/ComponentFactory";
 
 // Type aliases for backward compatibility
 export type ReactComponentDefinition = IComponentDefinition;
@@ -77,7 +78,7 @@ class ReactComponentRegistry implements IComponentRegistry {
 
       try {
         const result = middleware(
-          processedComponent as React.ComponentType<Record<string, unknown>>,
+          processedComponent as ReactComponent,
           definition.defaultProps || {},
           context
         );
@@ -133,10 +134,7 @@ class ReactComponentRegistry implements IComponentRegistry {
   /**
    * Create a component instance with processing
    */
-  create(
-    name: string,
-    props: Record<string, unknown> = {}
-  ): React.ComponentType<Record<string, unknown>> | null {
+  create(name: string, props: Record<string, unknown> = {}): ReactComponent | null {
     const definition = this.get(name);
     if (!definition) {
       console.error(`Component ${name} not found in registry`);
@@ -164,10 +162,10 @@ class ReactComponentRegistry implements IComponentRegistry {
             (typeof component === 'function' && !component.prototype?.isReactComponent))
         ) {
           component = middleware(
-            component as React.ComponentType<Record<string, unknown>>,
+            component as ReactComponent,
             mergedProps,
             context
-          ) as React.ComponentType<Record<string, unknown>>;
+          ) as ReactComponent;
         }
       }
     }
@@ -186,14 +184,12 @@ class ReactComponentRegistry implements IComponentRegistry {
       (component.prototype?.isReactComponent ||
         (typeof component === 'function' && !component.prototype?.isReactComponent))
     ) {
-      return component as React.ComponentType<Record<string, unknown>>;
+      return component as ReactComponent;
     }
 
     // If we somehow got a non-component, return a placeholder
     console.error(`Component ${name} is not a valid React component`);
-    return (() => <div>Invalid component: {name}</div>) as React.ComponentType<
-      Record<string, unknown>
-    >;
+    return (() => <div>Invalid component: {name}</div>) as ReactComponent;
   }
 
   /**
@@ -317,14 +313,14 @@ class ReactComponentRegistry implements IComponentRegistry {
   /**
    * Add event listener
    */
-  on(event: string, callback: (...args: unknown[]) => unknown, priority?: number): void {
+  on(event: string, callback: ComponentCallback, priority?: number): void {
     this.events.on(event, callback, priority);
   }
 
   /**
    * Remove event listener
    */
-  off(event: string, callback: (...args: unknown[]) => unknown): void {
+  off(event: string, callback: ComponentCallback): void {
     this.events.off(event, callback);
   }
 
@@ -363,10 +359,10 @@ class ReactComponentRegistry implements IComponentRegistry {
    */
   private createHookManager(): HookManager {
     return {
-      addHook: (event: string, callback: (...args: unknown[]) => unknown, priority?: number) => {
+      addHook: (event: string, callback: ComponentCallback, priority?: number) => {
         this.events.on(event, callback, priority);
       },
-      removeHook: (event: string, callback: (...args: unknown[]) => unknown) => {
+      removeHook: (event: string, callback: ComponentCallback) => {
         this.events.off(event, callback);
       },
       executeHooks: (event: string, data?: unknown) => {

@@ -122,7 +122,7 @@ class DevTools {
   }
 
   // Component tracking methods
-  trackComponentMount(name: string, props: Record<string, any>): void {
+  trackComponentMount(name: string, props: Record<string, unknown>): void {
     if (!this._isEnabled) return;
 
     const info: ComponentInfo = {
@@ -144,7 +144,7 @@ class DevTools {
     this.log(`Component mounted: ${name}`, props);
   }
 
-  trackComponentRender(name: string, props: Record<string, any>): void {
+  trackComponentRender(name: string, props: Record<string, unknown>): void {
     if (!this._isEnabled) return;
 
     const info = this.components.get(name);
@@ -204,7 +204,12 @@ class DevTools {
   }
 
   // State tracking methods
-  trackStateChange(path: string, oldValue: any, newValue: any, source: string = 'unknown'): void {
+  trackStateChange(
+    path: string,
+    oldValue: unknown,
+    newValue: unknown,
+    source: string = 'unknown'
+  ): void {
     if (!this._isEnabled) return;
 
     const change: StateChange = {
@@ -501,8 +506,11 @@ class DevTools {
 
   // Memory usage tracking (if available)
   getMemoryUsage(): number | undefined {
-    if (typeof performance !== 'undefined' && (performance as any).memory) {
-      return (performance as any).memory.usedJSHeapSize;
+    const performanceWithMemory = window.performance as typeof window.performance & {
+      memory?: { usedJSHeapSize: number };
+    };
+    if (typeof window !== 'undefined' && performanceWithMemory.memory) {
+      return performanceWithMemory.memory.usedJSHeapSize;
     }
     return undefined;
   }
@@ -511,7 +519,7 @@ class DevTools {
 // Event types for the observer pattern
 interface DevToolsEvent {
   type: string;
-  data: any;
+  data: unknown;
 }
 
 // Create singleton instance

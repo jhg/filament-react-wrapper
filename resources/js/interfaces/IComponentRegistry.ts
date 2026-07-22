@@ -5,12 +5,16 @@
 
 import React from 'react';
 
+export type ComponentProps = Record<string, unknown>;
+export type ReactComponent = React.ElementType;
+export type ComponentCallback = (...args: unknown[]) => unknown;
+
 export interface IComponentDefinition {
   name: string;
-  component: React.ComponentType<any> | (() => Promise<{ default: React.ComponentType<any> }>);
+  component: ReactComponent | (() => Promise<{ default: ReactComponent }>);
   isAsync?: boolean;
-  defaultProps?: Record<string, any>;
-  propTypes?: Record<string, any>;
+  defaultProps?: ComponentProps;
+  propTypes?: ComponentProps;
   config?: IComponentConfig;
   metadata?: IComponentMetadata;
 }
@@ -20,7 +24,7 @@ export interface IComponentConfig {
   cache?: boolean;
   ssr?: boolean;
   preload?: boolean;
-  wrapper?: string | React.ComponentType<any>;
+  wrapper?: string | ReactComponent;
   middleware?: Array<IComponentMiddleware>;
   dependencies?: string[];
   version?: string;
@@ -34,16 +38,16 @@ export interface IComponentMetadata {
   docs?: string;
   examples?: Array<{
     name: string;
-    props: Record<string, any>;
+    props: ComponentProps;
     description?: string;
   }>;
 }
 
 export type IComponentMiddleware = (
-  component: React.ComponentType<any>,
-  props: Record<string, any>,
+  component: ReactComponent,
+  props: ComponentProps,
   context: IComponentContext
-) => React.ComponentType<any> | Promise<React.ComponentType<any>>;
+) => ReactComponent | Promise<ReactComponent>;
 
 export interface IComponentContext {
   registry: IComponentRegistry;
@@ -53,15 +57,15 @@ export interface IComponentContext {
 }
 
 export interface IHookManager {
-  addHook(event: string, callback: Function, priority?: number): void;
-  removeHook(event: string, callback: Function): void;
-  executeHooks(event: string, data?: any): any;
+  addHook(event: string, callback: ComponentCallback, priority?: number): void;
+  removeHook(event: string, callback: ComponentCallback): void;
+  executeHooks(event: string, data?: unknown): unknown;
 }
 
 export interface IComponentRegistry {
   register(definition: IComponentDefinition): void;
   get(name: string): IComponentDefinition | undefined;
-  create(name: string, props?: Record<string, any>): React.ComponentType<any> | null;
+  create(name: string, props?: ComponentProps): ReactComponent | null;
   has(name: string): boolean;
   unregister(name: string): boolean;
   clear(): void;
@@ -71,13 +75,13 @@ export interface IComponentRegistry {
     categoryCounts: Record<string, number>;
     tagCounts: Record<string, number>;
   };
-  mount(componentName: string, containerId: string, props?: Record<string, any>): void;
+  mount(componentName: string, containerId: string, props?: ComponentProps): void;
   unmount(containerId: string): void;
 }
 
 export interface IEventSystem {
-  on(event: string, callback: Function, priority?: number): void;
-  off(event: string, callback: Function): void;
-  emit(event: string, data?: any): any;
+  on(event: string, callback: ComponentCallback, priority?: number): void;
+  off(event: string, callback: ComponentCallback): void;
+  emit(event: string, data?: unknown): unknown;
   hasListeners(event: string): boolean;
 }

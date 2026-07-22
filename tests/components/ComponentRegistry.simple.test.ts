@@ -1,6 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React from 'react';
-import { componentRegistry } from '../../resources/js/components/ReactComponentRegistry';
+import {
+  componentRegistry,
+  registerComponents,
+  ReactComponentRegistry,
+} from '../../resources/js/components/ReactComponentRegistry';
+import { universalReactRenderer } from '../../resources/js/components/UniversalReactRenderer';
 
 // Simple mock component for testing
 const TestComponent = ({ title = 'Test' }: { title?: string }) => 
@@ -85,5 +90,55 @@ describe('ComponentRegistry - Basic Functionality', () => {
     const stats = componentRegistry.getStats();
     expect(stats).toBeDefined();
     expect(typeof stats.totalComponents).toBe('number');
+  });
+
+  it('filters components and applies middleware', () => {
+    const registry = new ReactComponentRegistry();
+    const middleware = vi.fn((component: React.ElementType) => component);
+    const callback = vi.fn();
+    registry.on('component:registered', callback);
+    registry.addMiddleware(middleware);
+    registry.register({
+      name: 'AdminCard',
+      component: TestComponent,
+      metadata: { category: 'admin', tags: ['card'] },
+      config: { middleware: [middleware] },
+    });
+
+    expect(registry.getAll({ category: 'admin', tag: 'card' }).has('AdminCard')).toBe(true);
+    expect(registry.getAll({ name: /missing/ }).size).toBe(0);
+    expect(registry.create('AdminCard', { title: 'Admin' })).toBe(TestComponent);
+    expect(middleware).toHaveBeenCalled();
+    expect(callback).toHaveBeenCalled();
+  });
+
+  it('mounts and unmounts through the universal renderer', () => {
+    const registry = new ReactComponentRegistry();
+    const render = vi.spyOn(universalReactRenderer, 'render').mockImplementation(() => undefined);
+    const unmount = vi.spyOn(universalReactRenderer, 'unmount').mockImplementation(() => undefined);
+    registry.register({ name: 'TestComponent', component: TestComponent });
+
+    registry.mount('TestComponent', 'container', { title: 'Mounted' });
+    registry.unmount('container');
+
+    expect(render).toHaveBeenCalledWith(expect.objectContaining({
+      component: 'TestComponent',
+      containerId: 'container',
+    }));
+    expect(unmount).toHaveBeenCalledWith('container');
+  });
+
+  it('supports extensions and bulk registration helpers', () => {
+    const registry = new ReactComponentRegistry();
+    registry.registerExtension('analytics', { enabled: true });
+    registerComponents([
+      { name: 'One', component: TestComponent },
+      { name: 'Two', component: TestComponent },
+    ]);
+
+    expect(registry.get('missing')).toBeUndefined();
+    expect(componentRegistry.getComponentNames()).toEqual(expect.arrayContaining(['One', 'Two']));
+    registry.clear();
+    expect(registry.getComponentNames()).toEqual([]);
   });
 });

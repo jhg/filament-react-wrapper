@@ -171,19 +171,21 @@ abstract class BaseReactComponent
     {
         $props = Js::from($this->getComponentProps());
         $assetData = Js::from($this->getAssetData());
+        $containerId = Js::from($this->containerId);
+        $componentName = Js::from($this->componentName);
         $componentType = $this->getComponentType();
 
         return "
             window.ReactWrapper = window.ReactWrapper || {};
             window.ReactWrapper.{$componentType}s = window.ReactWrapper.{$componentType}s || {};
-            window.ReactWrapper.{$componentType}s['{$this->containerId}'] = {
+            window.ReactWrapper.{$componentType}s[{$containerId}] = {
                 props: {$props},
                 assets: {$assetData}
             };
 
             if (window.ReactWrapper.loadComponent) {
-                window.ReactWrapper.loadComponent('{$this->componentName}').then(() => {
-                    console.log('React {$componentType} component loaded: {$this->componentName}');
+                window.ReactWrapper.loadComponent({$componentName}).then(() => {
+                    console.log('React {$componentType} component loaded:', {$componentName});
                 });
             }
         ";

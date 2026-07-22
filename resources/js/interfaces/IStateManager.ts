@@ -3,34 +3,32 @@
  * Following Interface Segregation Principle
  */
 
-export interface IStateManagerState {
-  [key: string]: any;
-}
+export type IStateManagerState = Record<string, unknown>;
 
 export interface IStateAction {
   type: 'SET_STATE' | 'UPDATE_STATE' | 'RESET_STATE' | 'BATCH_UPDATE';
-  payload: any;
+  payload: unknown;
   path?: string;
 }
 
 export interface IStateManager {
-  setState(path: string, value: any): void;
-  updateState(path: string, updater: (current: any) => any): void;
-  getState(path: string): any;
+  setState(path: string, value: unknown): void;
+  updateState(path: string, updater: (current: unknown) => unknown): void;
+  getState(path: string): unknown;
   resetState(newState?: IStateManagerState): void;
-  batchUpdate(updates: Array<{ path: string; value: any }>): void;
-  subscribe(path: string, callback: (value: any) => void): () => void;
+  batchUpdate(updates: Array<{ path: string; value: unknown }>): void;
+  subscribe(path: string, callback: (value: unknown) => void): () => void;
 }
 
 export interface IStateSubscriber {
   path: string;
-  callback: (value: any) => void;
+  callback: (value: unknown) => void;
   priority?: number;
 }
 
 export interface IStateValidator {
-  validate(path: string, value: any): boolean;
-  getValidationErrors(path: string, value: any): string[];
+  validate(path: string, value: unknown): boolean;
+  getValidationErrors(path: string, value: unknown): string[];
 }
 
 export interface IStatePersistence {

@@ -46,6 +46,15 @@ class ReactWidget extends Widget
         return $widget;
     }
 
+    /**
+     * Configure the component on an already-instantiated widget subclass.
+     */
+    public function withComponent(string $componentName): static
+    {
+        $this->reactComponent->component($componentName);
+        return $this;
+    }
+
     public function props(array $props): static
     {
         $this->reactComponent->props($props);

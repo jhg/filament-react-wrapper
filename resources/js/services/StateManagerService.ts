@@ -9,10 +9,17 @@ import {
   IStateValidator,
   IStatePersistence,
 } from '../interfaces/IStateManager';
+import {
+  getNestedValue,
+  isStateRecord,
+  notifySubscribers,
+  setNestedValue,
+  type StateSubscribers,
+} from '../utils/state';
 
 export abstract class BaseStateManager implements IStateManager {
   protected state: IStateManagerState = {};
-  protected subscribers: Map<string, Set<(value: unknown) => void>> = new Map();
+  protected subscribers: StateSubscribers = new Map();
 
   abstract setState(path: string, value: unknown): void;
   abstract updateState(path: string, updater: (current: unknown) => unknown): void;
@@ -30,7 +37,7 @@ export abstract class BaseStateManager implements IStateManager {
 
     // Immediately notify with current value
     try {
-      const currentValue = this.getNestedValue(this.state, path);
+      const currentValue = getNestedValue(this.state, path);
       callback(currentValue);
     } catch (error) {
       console.error(`Error in immediate callback for path ${path}:`, error);
@@ -47,123 +54,50 @@ export abstract class BaseStateManager implements IStateManager {
       }
     };
   }
-
-  protected getNestedValue<T = unknown>(obj: Record<string, unknown>, path: string): T | undefined {
-    if (!path) return obj as T;
-    if (!obj || typeof obj !== 'object') return undefined;
-
-    return path
-      .split('.')
-      .reduce(
-        (current: unknown, key: string) =>
-          current && typeof current === 'object'
-            ? (current as Record<string, unknown>)[key]
-            : undefined,
-        obj as unknown
-      ) as T;
-  }
-
-  protected setNestedValue(
-    obj: Record<string, unknown>,
-    path: string,
-    value: unknown
-  ): Record<string, unknown> {
-    if (!path) return value as Record<string, unknown>;
-
-    const keys = path.split('.');
-    if (keys.length === 0) return obj;
-
-    const result = { ...obj } as Record<string, unknown>;
-    let current = result;
-
-    for (let i = 0; i < keys.length - 1; i += 1) {
-      const key = keys[i];
-      if (key === undefined || key === '') continue;
-
-      const shouldInitialize =
-        !(key in current) || current[key] === null || typeof current[key] !== 'object';
-
-      current[key] = shouldInitialize ? {} : { ...(current[key] as Record<string, unknown>) };
-      current = current[key] as Record<string, unknown>;
-    }
-
-    const lastKey = keys[keys.length - 1];
-    if (lastKey !== undefined && lastKey !== '') {
-      current[lastKey] = value;
-    }
-
-    return result;
-  }
-
-  protected notifySubscribers(path: string, value: any): void {
-    // Notify exact path subscribers
-    const exactSubscribers = this.subscribers.get(path);
-    if (exactSubscribers) {
-      exactSubscribers.forEach(callback => {
-        try {
-          callback(value);
-        } catch (error) {
-          console.error(`Error in subscriber callback for path ${path}:`, error);
-        }
-      });
-    }
-
-    // Notify parent path subscribers
-    const pathParts = path.split('.');
-    for (let i = pathParts.length - 1; i > 0; i -= 1) {
-      const parentPath = pathParts.slice(0, i).join('.');
-      const parentSubscribers = this.subscribers.get(parentPath);
-      if (parentSubscribers) {
-        const parentValue = this.getNestedValue(this.state, parentPath);
-        parentSubscribers.forEach(callback => {
-          try {
-            callback(parentValue);
-          } catch (error) {
-            console.error(`Error in subscriber callback for parent path ${parentPath}:`, error);
-          }
-        });
-      }
-    }
-  }
 }
 
 export class StandardStateManager extends BaseStateManager {
-  setState(path: string, value: any): void {
+  setState(path: string, value: unknown): void {
     if (!path) return;
 
-    this.state = this.setNestedValue(this.state, path, value);
-    this.notifySubscribers(path, value);
+    this.state = setNestedValue(this.state, path, value);
+    notifySubscribers(this.subscribers, this.state, path, value, (error, subscriberPath) => {
+      console.error(`Error in subscriber callback for path ${subscriberPath}:`, error);
+    });
   }
 
-  updateState(path: string, updater: (current: any) => any): void {
+  updateState(path: string, updater: (current: unknown) => unknown): void {
     if (!path || typeof updater !== 'function') return;
 
-    const currentValue = this.getNestedValue(this.state, path);
+    const currentValue = getNestedValue(this.state, path);
     const newValue = updater(currentValue);
     this.setState(path, newValue);
   }
 
-  getState(path: string): any {
-    return this.getNestedValue(this.state, path);
+  getState(path: string): unknown {
+    return getNestedValue(this.state, path);
   }
 
   resetState(newState: IStateManagerState = {}): void {
     this.state = { ...newState };
 
     // Notify all subscribers of reset
-    this.subscribers.forEach((callbacks, path) => {
-      const value = this.getNestedValue(this.state, path);
-      callbacks.forEach(callback => {
-        try {
-          callback(value);
-        } catch (error) {
-          console.error(`Error in reset callback for path ${path}:`, error);
-        }
-      });
+    this.subscribers.forEach((_, path) => {
+      const value = getNestedValue(this.state, path);
+      notifySubscribers(
+        this.subscribers,
+        this.state,
+        path,
+        value,
+        (error, subscriberPath) => {
+          console.error(`Error in subscriber callback for path ${subscriberPath}:`, error);
+        },
+        false
+      );
     });
   }
 
-  batchUpdate(updates: Array<{ path: string; value: any }>): void {
+  batchUpdate(updates: Array<{ path: string; value: unknown }>): void {
     if (!Array.isArray(updates) || updates.length === 0) return;
 
     let newState = { ...this.state };
@@ -171,7 +105,7 @@ export class StandardStateManager extends BaseStateManager {
 
     updates.forEach(({ path, value }) => {
       if (path) {
-        newState = this.setNestedValue(newState, path, value);
+        newState = setNestedValue(newState, path, value);
         notificationPaths.add(path);
       }
     });
@@ -180,8 +114,10 @@ export class StandardStateManager extends BaseStateManager {
 
     // Notify all affected paths
     notificationPaths.forEach(path => {
-      const value = this.getNestedValue(this.state, path);
-      this.notifySubscribers(path, value);
+      const value = getNestedValue(this.state, path);
+      notifySubscribers(this.subscribers, this.state, path, value, (error, subscriberPath) => {
+        console.error(`Error in subscriber callback for path ${subscriberPath}:`, error);
+      });
     });
   }
 }
@@ -191,7 +127,7 @@ export class ValidatedStateManager extends StandardStateManager {
     super();
   }
 
-  setState(path: string, value: any): void {
+  setState(path: string, value: unknown): void {
     if (this.validator && !this.validator.validate(path, value)) {
       const errors = this.validator.getValidationErrors(path, value);
       console.error(`Validation failed for path ${path}:`, errors);
@@ -201,8 +137,8 @@ export class ValidatedStateManager extends StandardStateManager {
     super.setState(path, value);
   }
 
-  updateState(path: string, updater: (current: any) => any): void {
-    const currentValue = this.getNestedValue(this.state, path);
+  updateState(path: string, updater: (current: unknown) => unknown): void {
+    const currentValue = getNestedValue(this.state, path);
     const newValue = updater(currentValue);
 
     if (this.validator && !this.validator.validate(path, newValue)) {
@@ -224,7 +160,7 @@ export class PersistentStateManager extends StandardStateManager {
     this.loadFromPersistence();
   }
 
-  async setState(path: string, value: any): Promise<void> {
+  async setState(path: string, value: unknown): Promise<void> {
     super.setState(path, value);
     await this.saveToPersistence();
   }
@@ -234,7 +170,7 @@ export class PersistentStateManager extends StandardStateManager {
     await this.saveToPersistence();
   }
 
-  async batchUpdate(updates: Array<{ path: string; value: any }>): Promise<void> {
+  async batchUpdate(updates: Array<{ path: string; value: unknown }>): Promise<void> {
     super.batchUpdate(updates);
     await this.saveToPersistence();
   }
@@ -242,7 +178,7 @@ export class PersistentStateManager extends StandardStateManager {
   private async loadFromPersistence(): Promise<void> {
     try {
       const persistedState = await this.persistence.load(this.persistenceKey);
-      if (persistedState) {
+      if (isStateRecord(persistedState)) {
         this.state = persistedState;
       }
     } catch (error) {

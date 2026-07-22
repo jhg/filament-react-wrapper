@@ -9,6 +9,20 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     coverage: {
       reporter: ['text', 'json', 'html'],
+      include: [
+        'resources/js/utils/state.ts',
+        'resources/js/services/StateManagerService.ts',
+        'resources/js/services/EventSystem.ts',
+        'resources/js/services/StatePersistenceService.tsx',
+        'resources/js/components/StateManager.tsx',
+        'resources/js/components/ReactComponentRegistry.tsx',
+      ],
+      thresholds: {
+        lines: 60,
+        functions: 60,
+        branches: 60,
+        statements: 60,
+      },
       exclude: [
         'node_modules/',
         'tests/',

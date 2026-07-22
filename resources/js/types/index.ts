@@ -2,8 +2,6 @@
  * Public type definitions for React Wrapper
  */
 
-import React from 'react';
-
 // Re-export key interfaces
 export type { IComponentDefinition, IComponentRegistry } from '../interfaces/IComponentRegistry';
 export type {
@@ -14,6 +12,7 @@ export type {
 
 // Import interfaces
 import type { IComponentRegistry } from '../interfaces/IComponentRegistry';
+import type { ReactComponent } from '../interfaces/IComponentRegistry';
 import type { IStateManager, IStatePersistence } from '../interfaces/IStateManager';
 
 // Main API interface with proper typing
@@ -50,7 +49,7 @@ export interface IDevTools {
 }
 
 export interface ICodeSplittingService {
-  loadComponent(name: string): Promise<React.ComponentType<Record<string, unknown>>>;
+  loadComponent(name: string): Promise<ReactComponent>;
   preloadComponent(name: string): Promise<void>;
   isLoaded(name: string): boolean;
 }

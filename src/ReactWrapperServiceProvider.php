@@ -170,7 +170,7 @@ class ReactWrapperServiceProvider extends ServiceProvider
 
         // Publish main file for Vite integration
         $this->publishes([
-            __DIR__.'/../resources/js/index.tsx' => resource_path('js/bootstrap-react.tsx'),
+            __DIR__.'/../resources/js/bootstrap-react.tsx' => resource_path('js/bootstrap-react.tsx'),
         ], 'react-wrapper-bootstrap');
 
         // Publish prebuilt assets for production use (no build step required)
@@ -183,7 +183,7 @@ class ReactWrapperServiceProvider extends ServiceProvider
         // Publish all assets at once
         $this->publishes([
             __DIR__.'/../resources/js' => resource_path('js/react-wrapper'),
-            __DIR__.'/../resources/js/index.tsx' => resource_path('js/bootstrap-react.tsx'),
+            __DIR__.'/../resources/js/bootstrap-react.tsx' => resource_path('js/bootstrap-react.tsx'),
             __DIR__.'/../resources/views' => resource_path('views/vendor/react-wrapper'),
         ], 'react-wrapper');
     }
