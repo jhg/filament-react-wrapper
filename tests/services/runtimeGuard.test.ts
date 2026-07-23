@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { version as reactVersion } from 'react';
 
 const runtimeMarker = '__filamentReactWrapperRuntime';
 
@@ -27,7 +28,7 @@ describe('runtimeGuard', () => {
   });
 
   it('allows a second runtime with the same mode without reporting a conflict', async () => {
-    window[runtimeMarker] = { mode: 'prebuilt', reactVersion: '18.2.0' };
+    window[runtimeMarker] = { mode: 'prebuilt', reactVersion };
     const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 

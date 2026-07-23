@@ -178,14 +178,19 @@ jobs:
           # security blocking disabled only for this compatibility resolver;
           # dependency auditing remains a separate concern.
           COMPOSER_NO_SECURITY_BLOCKING: '1'
-        run: >-
-          composer update
-          "laravel/framework:${{ matrix.laravel }}"
-          "filament/filament:${{ matrix.filament }}"
-          "livewire/livewire:${{ matrix.livewire }}"
-          "orchestra/testbench:${{ matrix.testbench }}"
-          "phpunit/phpunit:${{ matrix.phpunit }}"
-          --with-all-dependencies --prefer-dist --no-interaction --no-progress
+        run: |
+          # composer.lock is intentionally not committed for this library. Set
+          # the matrix constraints in the ephemeral checkout, then resolve the
+          # complete dependency graph so Composer does not reject a partial
+          # update without a lock file.
+          composer require --no-update --no-interaction \
+            "laravel/framework:${{ matrix.laravel }}" \
+            "filament/filament:${{ matrix.filament }}" \
+            "livewire/livewire:${{ matrix.livewire }}"
+          composer require --dev --no-update --no-interaction \
+            "orchestra/testbench:${{ matrix.testbench }}" \
+            "phpunit/phpunit:${{ matrix.phpunit }}"
+          composer update --with-all-dependencies --prefer-dist --no-interaction --no-progress
 
       - name: Run PHP tests
         run: vendor/bin/phpunit -c phpunit.xml.dist
