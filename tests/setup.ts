@@ -17,6 +17,8 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+window.localStorage.setItem('react-wrapper-debug', 'false');
+
 // Mock IntersectionObserver
 global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   observe: vi.fn(),
@@ -43,6 +45,7 @@ beforeEach(() => {
 
   // Reset DOM
   document.body.innerHTML = '';
+  window.localStorage.setItem('react-wrapper-debug', 'false');
 
   // Reset window.ReactWrapper if it exists
   if (typeof window !== 'undefined') {

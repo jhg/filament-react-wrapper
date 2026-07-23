@@ -46,13 +46,18 @@ class DevTools {
   }
 
   private shouldEnable(): boolean {
-    return (
-      typeof window !== 'undefined' &&
-      ((typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') ||
-        window.location.hostname === 'localhost' ||
-        window.location.search.includes('react-wrapper-debug=true') ||
-        localStorage.getItem('react-wrapper-debug') === 'true')
-    );
+    if (typeof window === 'undefined') return false;
+
+    const explicit =
+      typeof localStorage !== 'undefined' ? localStorage.getItem('react-wrapper-debug') : null;
+    if (explicit === 'false') return false;
+    if (explicit === 'true') return true;
+    if (window.location.search.includes('react-wrapper-debug=true')) return true;
+
+    const nodeEnv = typeof process !== 'undefined' ? process.env?.NODE_ENV : undefined;
+    if (nodeEnv === 'test') return false;
+
+    return nodeEnv === 'development' || window.location.hostname === 'localhost';
   }
 
   private initializeDevTools(): void {
@@ -445,6 +450,8 @@ class DevTools {
 
   // Make logging methods public so they can be used by other services
   public log(message: string, data?: unknown): void {
+    if (!this._isEnabled) return;
+
     if (data !== undefined) {
       console.log(`%c[React Wrapper] ${message}`, 'color: #4F46E5;', data);
     } else {

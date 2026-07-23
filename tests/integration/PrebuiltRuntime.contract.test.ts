@@ -30,6 +30,7 @@ describe('prebuilt Composer runtime', () => {
         runScripts: 'outside-only',
         url: 'http://localhost/',
       });
+      dom.window.localStorage.setItem('react-wrapper-debug', 'false');
       dom.window.Livewire = {
         find: vi.fn(() => wire),
         hook,
@@ -85,6 +86,7 @@ describe('prebuilt Composer runtime', () => {
       runScripts: 'outside-only',
       url: 'http://localhost/',
     });
+    dom.window.localStorage.setItem('react-wrapper-debug', 'false');
     const error = vi.spyOn(dom.window.console, 'error').mockImplementation(() => undefined);
     dom.window.__filamentReactWrapperRuntime = {
       mode: 'vite',

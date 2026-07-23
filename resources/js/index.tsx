@@ -93,7 +93,7 @@ export type { StateManagerConfig };
 
 // Bootstrap function for initialization
 export function bootstrap() {
-  console.log('React Wrapper initialized for Filament integration');
+  devTools.log('React Wrapper initialized for Filament integration');
   return true;
 }
 

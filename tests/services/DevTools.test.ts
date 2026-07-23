@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('DevTools', () => {
   beforeEach(() => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
     devTools.enable();
     devTools.clear();
   });
@@ -10,6 +11,7 @@ describe('DevTools', () => {
   afterEach(() => {
     devTools.clear();
     devTools.disable();
+    vi.restoreAllMocks();
   });
 
   it('tracks components, state, performance, and observer events', () => {
@@ -63,10 +65,35 @@ describe('DevTools', () => {
 
   it('returns empty data while disabled and tolerates invalid performance measures', () => {
     devTools.disable();
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    devTools.log('hidden while disabled');
+
     expect(devTools.getComponentInfo()).toBeUndefined();
     expect(devTools.getPerformanceMetrics()).toEqual([]);
     expect(devTools.getStateHistory()).toEqual([]);
     devTools.endPerformanceMeasure('never-started');
     expect(devTools.getMemoryUsage()).toBeUndefined();
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it('keeps automatic activation disabled in test environments without an explicit flag', async () => {
+    localStorage.removeItem('react-wrapper-debug');
+    vi.resetModules();
+
+    const { devTools: isolatedDevTools } = await import('../../resources/js/services/DevTools');
+
+    expect(isolatedDevTools.isEnabled()).toBe(false);
+  });
+
+  it('honors explicit debug flags over the test-environment default', async () => {
+    localStorage.setItem('react-wrapper-debug', 'false');
+    vi.resetModules();
+    const disabled = await import('../../resources/js/services/DevTools');
+    expect(disabled.devTools.isEnabled()).toBe(false);
+
+    localStorage.setItem('react-wrapper-debug', 'true');
+    vi.resetModules();
+    const enabled = await import('../../resources/js/services/DevTools');
+    expect(enabled.devTools.isEnabled()).toBe(true);
   });
 });
