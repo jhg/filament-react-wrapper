@@ -17,7 +17,8 @@ The PHP suite uses Orchestra Testbench and verifies service-provider booting, Fi
 
 The runtime contract suite mounts a real React component in JSDOM and mocks
 only the unavoidable `window.Livewire.find()` boundary. It covers controlled
-updates, `$watch`, dynamic insertion/removal, validation events, polling, and
+updates, Livewire `morphed` synchronization without per-container watchers,
+dynamic insertion/removal, validation events, polling, and
 the `react-loaded` lifecycle event. `test:bundle` evaluates the exact
 `resources/vendor/react-wrapper.js` artifact in an isolated JSDOM and checks the
 same controlled field bridge. It does not claim to replace a browser test:

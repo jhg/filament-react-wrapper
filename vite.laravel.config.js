@@ -31,6 +31,7 @@ export default defineConfig({
         target: 'es2020'
     },
     define: {
-        'process.env.NODE_ENV': JSON.stringify('production')
+        'process.env.NODE_ENV': JSON.stringify('production'),
+        '__REACT_WRAPPER_RUNTIME_MODE__': JSON.stringify('prebuilt'),
     }
 });

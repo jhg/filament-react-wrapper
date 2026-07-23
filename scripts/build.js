@@ -186,6 +186,9 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
 export default defineConfig({
+  define: {
+    '__REACT_WRAPPER_RUNTIME_MODE__': JSON.stringify('vite'),
+  },
   plugins: [react()],
   build: {
     lib: {

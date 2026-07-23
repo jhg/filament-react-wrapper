@@ -1,9 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  StatePersistenceService,
-  usePersistedState,
-} from '../../resources/js/services/StatePersistenceService';
+import { StatePersistenceService } from '../../resources/js/services/StatePersistenceService';
+import { usePersistedState } from '../../resources/js/hooks/usePersistedState';
 
 describe('StatePersistenceService', () => {
   beforeEach(() => {

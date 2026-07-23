@@ -8,6 +8,7 @@ import type {
   ReactComponent,
 } from '../interfaces/IComponentRegistry';
 import { registerFilamentReactGlobals } from '../utils/globals';
+import { runtimeCanInitialize } from '../runtimeGuard';
 
 let autoMountTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -225,7 +226,7 @@ export const registerComponents = (components: Record<string, ReactComponent>) =
 };
 
 // Export for global access
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && runtimeCanInitialize) {
   registerFilamentReactGlobals({
     registerComponent,
     defineComponents,

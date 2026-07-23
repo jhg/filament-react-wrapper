@@ -46,19 +46,21 @@ function IntegrationPageIsland({
 }
 
 describe('Filament runtime contract', () => {
+  let livewireValues: Record<string, unknown> = {};
+  let morphCallback: (() => void) | undefined;
   const wire = {
     $set: vi.fn(),
-    $watch: vi.fn((_path: string, callback: (value: unknown) => void) => {
-      watchCallbacks.push(callback);
-    }),
+    get: vi.fn((path: string) => livewireValues[path]),
     $call: vi.fn(),
   };
-  let watchCallbacks: Array<(value: unknown) => void> = [];
 
-  afterEach(() => {
-    FilamentReactAdapter.cleanup();
-    universalReactRenderer.unmountAll();
-    watchCallbacks = [];
+  afterEach(async () => {
+    await act(async () => {
+      FilamentReactAdapter.cleanup();
+      universalReactRenderer.unmountAll();
+    });
+    livewireValues = {};
+    morphCallback = undefined;
     vi.restoreAllMocks();
     delete window.Livewire;
     document.body.innerHTML = '';
@@ -73,6 +75,9 @@ describe('Filament runtime contract', () => {
 
     window.Livewire = {
       find: vi.fn(() => wire),
+      hook: vi.fn((_name: string, callback: () => void) => {
+        morphCallback = callback;
+      }),
     };
 
     document.body.innerHTML = `
@@ -93,16 +98,14 @@ describe('Filament runtime contract', () => {
 
     await waitFor(() => expect(document.querySelector('[data-testid="controlled-editor"]')).toBeTruthy());
     expect(loaded).toHaveBeenCalledTimes(1);
-    expect(wire.$watch).toHaveBeenCalledWith('data.content', expect.any(Function));
 
     await act(async () => {
       fireEvent.click(document.querySelector('[data-testid="controlled-editor"]')!);
     });
     expect(wire.$set).toHaveBeenCalledWith('data.content', 'edited by real React');
 
-    await act(async () => {
-      watchCallbacks.forEach(callback => callback('updated by Livewire'));
-    });
+    livewireValues['data.content'] = 'updated by Livewire';
+    await act(async () => morphCallback?.());
     await waitFor(() => expect(document.querySelector('[data-testid="controlled-editor"]')).toHaveTextContent('updated by Livewire'));
   });
 
@@ -113,7 +116,12 @@ describe('Filament runtime contract', () => {
       isAsync: false,
     });
 
-    window.Livewire = { find: vi.fn(() => wire) };
+    window.Livewire = {
+      find: vi.fn(() => wire),
+      hook: vi.fn((_name: string, callback: () => void) => {
+        morphCallback = callback;
+      }),
+    };
     document.body.innerHTML = `
       <div wire:id="validation-component">
         <div id="validation-field" data-react-component="IntegrationControlledEditor"
@@ -149,7 +157,12 @@ describe('Filament runtime contract', () => {
       isAsync: false,
     });
 
-    window.Livewire = { find: vi.fn(() => wire) };
+    window.Livewire = {
+      find: vi.fn(() => wire),
+      hook: vi.fn((_name: string, callback: () => void) => {
+        morphCallback = callback;
+      }),
+    };
     document.body.innerHTML = `
       <div wire:id="custom-page-component">
         <div
@@ -164,27 +177,30 @@ describe('Filament runtime contract', () => {
 
     FilamentReactAdapter.initializeComponents();
     await waitFor(() => expect(document.querySelector('[data-testid="page-island"]')).toBeTruthy());
-    expect(wire.$watch).toHaveBeenCalledWith('filters', expect.any(Function));
 
     await act(async () => {
       fireEvent.click(document.querySelector('[data-testid="page-island"]')!);
     });
     expect(wire.$set).toHaveBeenCalledWith('filters', { period: 'year' });
 
-    await act(async () => {
-      watchCallbacks.forEach(callback => callback({ period: 'week' }));
-    });
+    livewireValues.filters = { period: 'week' };
+    await act(async () => morphCallback?.());
     await waitFor(() => expect(document.querySelector('[data-testid="page-island"]')).toHaveTextContent('week'));
   });
 
-  it('mounts components inserted after initialization and neutralizes stale watchers on removal', async () => {
+  it('mounts components inserted after initialization without retaining per-container watchers', async () => {
     componentRegistry.register({
       name: 'IntegrationControlledEditor',
       component: IntegrationControlledEditor,
       isAsync: false,
     });
 
-    window.Livewire = { find: vi.fn(() => wire) };
+    window.Livewire = {
+      find: vi.fn(() => wire),
+      hook: vi.fn((_name: string, callback: () => void) => {
+        morphCallback = callback;
+      }),
+    };
     document.body.innerHTML = '<main id="dynamic-root"></main>';
     FilamentReactAdapter.initializeComponents();
 
@@ -203,7 +219,8 @@ describe('Filament runtime contract', () => {
     root.innerHTML = '';
     await waitFor(() => expect(universalReactRenderer.isRendered('dynamic-field')).toBe(false));
 
-    watchCallbacks.forEach(callback => callback('late update'));
+    livewireValues['data.content'] = 'late update';
+    await act(async () => morphCallback?.());
     expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('No rendered component found'));
   });
 });

@@ -13,6 +13,7 @@ export default defineConfig({
         'resources/js/utils/state.ts',
         'resources/js/services/EventSystem.ts',
         'resources/js/services/StatePersistenceService.tsx',
+        'resources/js/hooks/usePersistedState.ts',
         'resources/js/components/ReactComponentRegistry.tsx',
         'resources/js/components/EnhancedStateManager.tsx',
         'resources/js/components/UniversalReactRenderer.tsx',

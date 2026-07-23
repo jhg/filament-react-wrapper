@@ -24,22 +24,23 @@ describe('FilamentReactAdapter', () => {
     expect(JSON.parse(field.dataset.reactProps!)).toEqual({ required: true });
   });
 
-  it('syncs React changes to the real Livewire component and watches server changes', () => {
+  it('syncs React changes to Livewire and server changes after a morph', () => {
     vi.useFakeTimers();
     const set = vi.fn();
-    let watchCallback: ((value: unknown) => void) | undefined;
-    const watch = vi.fn((_path: string, callback: (value: unknown) => void) => {
-      watchCallback = callback;
-      return vi.fn();
+    let livewireValue = 'From Livewire';
+    let morphCallback: (() => void) | undefined;
+    const get = vi.fn(() => livewireValue);
+    const hook = vi.fn((_name: string, callback: () => void) => {
+      morphCallback = callback;
     });
     window.Livewire = {
       find: vi.fn(() => ({
         call: vi.fn(),
         set: vi.fn(),
-        get: vi.fn(),
+        get,
         $set: set,
-        $watch: watch,
       })),
+      hook,
     };
 
     let rendererProps: Parameters<typeof universalReactRenderer.render>[0] | undefined;
@@ -61,11 +62,13 @@ describe('FilamentReactAdapter', () => {
     FilamentReactAdapter.initializeComponents();
     vi.runAllTimers();
     rendererProps?.onDataChange?.('From React');
-    watchCallback?.('From Livewire');
+    livewireValue = 'From Livewire';
+    morphCallback?.();
 
     expect(window.Livewire.find).toHaveBeenCalledWith('lw-1');
     expect(set).toHaveBeenCalledWith('data.profile.name', 'From React');
-    expect(watch).toHaveBeenCalledWith('data.profile.name', expect.any(Function));
+    expect(hook).toHaveBeenCalledWith('morphed', expect.any(Function));
+    expect(get).toHaveBeenCalledWith('data.profile.name');
     expect(updateProps).toHaveBeenCalledWith('profile-field', { value: 'From Livewire' });
     expect(loaded).toHaveBeenCalledTimes(1);
   });

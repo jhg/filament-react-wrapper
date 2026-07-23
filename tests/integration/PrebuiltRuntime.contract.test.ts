@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
-import React from 'react';
+import React, { act } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const bundle = readFileSync(resolve(process.cwd(), 'resources/vendor/react-wrapper.js'), 'utf8');
@@ -17,13 +17,14 @@ describe('prebuilt Composer runtime', () => {
   it.skipIf(!React.version.startsWith('18.'))(
     'mounts a registered field and bridges its value through Livewire when the host React matches the embedded runtime',
     async () => {
-      let watchCallback: ((value: unknown) => void) | undefined;
+      let livewireValue = 'from server';
+      let morphCallback: (() => void) | undefined;
       const set = vi.fn();
-      const watch = vi.fn((_path: string, callback: (value: unknown) => void) => {
-        watchCallback = callback;
-        return vi.fn();
+      const get = vi.fn(() => livewireValue);
+      const hook = vi.fn((_name: string, callback: () => void) => {
+        morphCallback = callback;
       });
-      const wire = { $set: set, $watch: watch };
+      const wire = { $set: set, get };
 
       dom = new JSDOM('<!doctype html><body></body>', {
         runScripts: 'outside-only',
@@ -31,6 +32,7 @@ describe('prebuilt Composer runtime', () => {
       });
       dom.window.Livewire = {
         find: vi.fn(() => wire),
+        hook,
       } as never;
       dom.window.eval(bundle);
 
@@ -66,15 +68,40 @@ describe('prebuilt Composer runtime', () => {
       dom.window.document.body.append(container);
 
       const button = await waitForElement(dom.window.document, 'button');
-      button.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+      await act(async () => {
+        button.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+      });
 
       expect(set).toHaveBeenCalledWith('data.content', 'from prebuilt React');
-      expect(watch).toHaveBeenCalledWith('data.content', expect.any(Function));
 
-      watchCallback?.('server update');
+      livewireValue = 'server update';
+      await act(async () => morphCallback?.());
       await waitFor(() => expect(button.textContent).toBe('server update'));
     }
   );
+
+  it('does not initialize when another runtime mode is already active', () => {
+    dom = new JSDOM('<!doctype html><body></body>', {
+      runScripts: 'outside-only',
+      url: 'http://localhost/',
+    });
+    const error = vi.spyOn(dom.window.console, 'error').mockImplementation(() => undefined);
+    dom.window.__filamentReactWrapperRuntime = {
+      mode: 'vite',
+      reactVersion: '19.0.0',
+    };
+
+    dom.window.eval(bundle);
+
+    expect(error).toHaveBeenCalledWith(
+      expect.stringContaining('Refusing to initialize a prebuilt runtime')
+    );
+    expect(dom.window.__filamentReactWrapperRuntime).toEqual({
+      mode: 'vite',
+      reactVersion: '19.0.0',
+    });
+    expect(dom.window.FilamentReact).toBeUndefined();
+  });
 });
 
 async function waitForElement(

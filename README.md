@@ -47,11 +47,11 @@ The runtime can be refreshed manually with `php artisan filament-react:assets --
 
 ### React version behavior
 
-The Composer prebuilt runtime bundles React 18.3.x and React DOM 18.3.x privately. If the application has React 17, 18, or 19 installed, that does not cause a conflict as long as the application only consumes the prebuilt runtime and does not pass application-built React components into it.
+The Composer prebuilt runtime bundles React 18.3.x and React DOM 18.3.x privately. If the application has React 17, 18, or 19 installed, that does not cause a conflict as long as the application only consumes the prebuilt runtime and does not pass application-built React components into it. The runtime marks its mode and React version on `window`; if both runtime modes are loaded, the second one refuses to initialize and logs the conflict.
 
 When developing application-owned components with `--dev`, the package source uses the application’s own `react` and `react-dom`. The installer preserves versions already declared in `package.json`; if they are missing, it installs the tested React 18.3.x baseline. Keep `react` and `react-dom` on the same major version. React 18 and React 19 are tested in CI.
 
-Do not load the prebuilt runtime and the Vite runtime at the same time. `--dev` sets `REACT_WRAPPER_ASSET_MODE=vite` to prevent duplicate React copies and invalid-hook-call errors.
+Do not load the prebuilt runtime and the Vite runtime at the same time. `--dev` sets `REACT_WRAPPER_ASSET_MODE=vite` to prevent duplicate React copies and invalid-hook-call errors. The adapter synchronizes server state after Livewire's `morphed` hook, so it does not retain one `$watch()` subscription per container.
 
 ## Quick start
 
@@ -266,7 +266,7 @@ ReactField::make('content')
   -> adapter resolves the nearest wire:id
   -> $wire.$set('data.content', nextValue)
   -> Filament/Livewire can validate and rerender
-  -> $wire.$watch(...) sends the server value back to React
+  -> Livewire's morphed hook reads the server value with $wire.get()
 ```
 
 Keep the input controlled: render the current `value` and call `setValue` (or
@@ -279,8 +279,9 @@ For a subclass, call `$this->withComponent('DashboardChart')` in its constructor
 
 Both integrations keep the React DOM under `wire:ignore`. For a field, the
 runtime reads Filament’s full state path (for example `data.content`), finds
-the nearest Livewire `wire:id`, calls `$wire.$set(path, value)`, and watches
-`$wire.$watch(path, ...)` for server-to-React updates. This also applies to
+the nearest Livewire `wire:id`, calls `$wire.$set(path, value)`, and uses
+Livewire's `morphed` hook to read server-to-React updates with `$wire.get(path)`.
+This also applies to
 fields inserted later into modals, repeaters, wizards, and slideovers. Widget
 polling uses `$wire.$call('refresh')` and updates the React `data` prop.
 

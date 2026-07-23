@@ -24,7 +24,7 @@ User-facing entry points:
 | `SimpleRegistration.tsx` | Blessed API: `defineComponents`, `registerComponent`, `mountIsland`. |
 | `ReactComponentRegistry.tsx` | Internal registry used by the renderer and registration helpers. |
 | `UniversalReactRenderer.tsx` | Renders registry components from DOM metadata. Adapts controlled field props (`value`/`onChange`). |
-| `FilamentReactAdapter.tsx` | MutationObserver-based mounting and React ↔ Livewire bridge. Resolves `wire:id`, uses `$set`/`set`, subscribes with `$watch`. Handles `livewire:navigated` and `livewire:init`. |
+| `FilamentReactAdapter.tsx` | MutationObserver-based mounting and React ↔ Livewire bridge. Resolves `wire:id`, uses `$set`/`set`, and reads server values with `$get`/`get` after Livewire's `morphed` hook. Handles `livewire:navigated` and `livewire:init`. |
 | `EnhancedStateManager.tsx` | Owns `useFilamentState`. Used by generated stubs. **Do not remove.** |
 | `useReactField.ts` | Hook: controlled `value`/`setValue` contract for shared field components. |
 

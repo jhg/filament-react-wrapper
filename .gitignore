@@ -96,3 +96,4 @@ temp/
 .dynamodb/
 
 # Composer
+composer.lock

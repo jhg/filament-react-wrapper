@@ -138,8 +138,9 @@ export default function RichTextInput(props: ReactFieldProps<string>) {
 
 `setValue(nextValue)` calls the field's `onChange`; the adapter sends that value
 to the full Filament state path, such as `data.content`, through Livewire. The
-server value comes back through `$watch`, so the component should render
-`value` directly instead of maintaining a second uncontrolled copy.
+server value is read with `$wire.get(path)` after Livewire's `morphed` hook, so
+the component should render `value` directly instead of maintaining a second
+uncontrolled copy.
 
 For client-side validation, dispatch `react-validation-error` from the field
 container with `{ detail: { errors: string[] } }`; dispatch

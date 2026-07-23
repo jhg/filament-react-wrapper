@@ -1,4 +1,5 @@
 import { universalReactRenderer } from '../UniversalReactRenderer';
+import { runtimeCanInitialize } from '../../runtimeGuard';
 
 type Cleanup = () => void;
 type LivewireWire = {
@@ -7,7 +8,6 @@ type LivewireWire = {
   get?: (path: string) => unknown;
   $call?: (method: string, ...args: unknown[]) => unknown;
   $set?: (path: string, value: unknown) => unknown;
-  $watch?: (path: string, callback: (value: unknown) => void) => (() => void) | void;
   $wire?: LivewireWire;
 };
 
@@ -22,13 +22,15 @@ export class FilamentReactAdapter {
   private static containerCleanups = new Map<string, Cleanup>();
   private static renderedProps = new Map<string, string>();
   private static lifecycleListenersRegistered = false;
-  private static livewireHooksRegistered = false;
+  private static livewireRuntime: unknown;
 
   static initializeComponents(): void {
     const start = () => {
       this.scanAndRenderComponents();
+      this.syncLivewireValues();
       this.setupMutationObserver();
       this.registerLifecycleListeners();
+      this.registerLivewireHooks();
     };
 
     if (document.readyState === 'loading') {
@@ -59,6 +61,32 @@ export class FilamentReactAdapter {
     };
 
     processContainers(0, 5);
+  }
+
+  /**
+   * Livewire's `$watch()` cleanup is not part of every supported client
+   * implementation. Read the current value after a morph instead of keeping
+   * one watcher alive for every React container.
+   */
+  private static syncLivewireValues(): void {
+    document
+      .querySelectorAll<HTMLElement>('[data-react-component][data-react-rendered]')
+      .forEach(element => {
+        const statePath = element.dataset.reactStatePath;
+        if (!statePath || !universalReactRenderer.hasActiveComponent(element.id)) return;
+
+        const component = this.getLivewireComponent(element);
+        const wire = component && this.getWireProxy(component);
+        if (!wire?.get) return;
+
+        try {
+          universalReactRenderer.updateProps(element.id, {
+            value: wire.get(statePath),
+          });
+        } catch (error) {
+          console.warn(`Unable to read Livewire state at "${statePath}":`, error);
+        }
+      });
   }
 
   private static renderComponent(element: HTMLElement): void {
@@ -112,7 +140,6 @@ export class FilamentReactAdapter {
           },
           onMounted: () => {
             this.removeLoadingIndicator(element);
-            this.setupLivewireBridge(element, statePath);
             this.setupValidationBridge(element);
             this.setupWidgetPolling(element);
             element.dispatchEvent(
@@ -236,11 +263,12 @@ export class FilamentReactAdapter {
 
   private static registerLivewireHooks(): void {
     const livewire = window.Livewire;
-    if (this.livewireHooksRegistered || !livewire?.hook) return;
+    if (!livewire?.hook || this.livewireRuntime === livewire) return;
 
-    this.livewireHooksRegistered = true;
+    this.livewireRuntime = livewire;
     livewire.hook('morphed', () => {
       this.scanAndRenderComponents();
+      this.syncLivewireValues();
     });
   }
 
@@ -271,35 +299,6 @@ export class FilamentReactAdapter {
         console.error(`Unable to update Livewire state at "${statePath}":`, error);
       });
     }
-  }
-
-  private static setupLivewireBridge(element: HTMLElement, statePath?: string): void {
-    this.containerCleanups.get(element.id)?.();
-    const cleanups: Cleanup[] = [];
-    let active = true;
-    const component = statePath ? this.getLivewireComponent(element) : undefined;
-    const wire = component && this.getWireProxy(component);
-
-    if (wire && statePath && wire.$watch) {
-      const cleanup = wire.$watch(statePath, value => {
-        if (
-          !active ||
-          !element.isConnected ||
-          !universalReactRenderer.hasActiveComponent(element.id)
-        ) {
-          return;
-        }
-
-        universalReactRenderer.updateProps(element.id, { value });
-      });
-      if (typeof cleanup === 'function') cleanups.push(cleanup);
-    }
-
-    this.containerCleanups.set(element.id, () => {
-      active = false;
-      cleanups.forEach(cleanup => cleanup());
-      this.containerCleanups.delete(element.id);
-    });
   }
 
   /**
@@ -421,7 +420,9 @@ export class FilamentReactAdapter {
   }
 }
 
-FilamentReactAdapter.initializeComponents();
+if (runtimeCanInitialize) {
+  FilamentReactAdapter.initializeComponents();
+}
 
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => FilamentReactAdapter.cleanup());

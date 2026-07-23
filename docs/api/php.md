@@ -91,10 +91,11 @@ The TypeScript helpers are `ReactFieldProps<T>` and the optional
 `useReactField()` hook.
 
 The bridge uses Filament’s complete `getStatePath()` value, not only the field
-name. It resolves the nearest Livewire `wire:id`, calls `$wire.$set()` on React
-changes, and uses `$wire.$watch()` for server-to-React updates. Because this
-logic lives in the runtime MutationObserver, fields added after initial page
-load are supported too.
+name. It resolves the nearest Livewire `wire:id` and calls `$wire.$set()` on
+React changes. After Livewire's `morphed` hook it reads the current value with
+`$wire.get()` and updates React, so it does not retain one `$watch()`
+subscription per container. Because this logic lives in the runtime
+MutationObserver, fields added after initial page load are supported too.
 
 ### Complete field example
 
@@ -235,7 +236,7 @@ React component should control a Page property.
 Use a stable container ID. The generic island receives value and onDataChange;
 it does not use the ReactField contract. The adapter resolves the Page's
 nearest Livewire component and synchronizes the explicit state path with
-$wire.$set() and $wire.$watch(). In --dev mode, the application's Vite
+$wire.$set() and the Livewire `morphed` hook. In --dev mode, the application's Vite
 entrypoint must import ./bootstrap-react; the prebuilt runtime does not contain
 application-owned components.
 

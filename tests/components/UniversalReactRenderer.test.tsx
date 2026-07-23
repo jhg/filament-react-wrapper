@@ -35,7 +35,7 @@ describe('UniversalReactRenderer', () => {
     expect(renderer.isRendered('renderer-container')).toBe(true);
     expect(renderer.getActiveContainers()).toEqual(['renderer-container']);
 
-    renderer.unmount('renderer-container');
+    await act(async () => renderer.unmount('renderer-container'));
     expect(renderer.hasActiveComponent('renderer-container')).toBe(false);
   });
 
@@ -51,7 +51,7 @@ describe('UniversalReactRenderer', () => {
       renderer.render({ component: 'Missing', containerId: 'error-container', onError });
     });
     expect(screen.getByText(/Component "Missing" not found/)).toBeInTheDocument();
-    renderer.unmountAll();
+    await act(async () => renderer.unmountAll());
   });
 
   it('updates props using the container metadata and safely ignores unknown containers', async () => {
@@ -74,7 +74,7 @@ describe('UniversalReactRenderer', () => {
     expect(screen.getByText('After')).toBeInTheDocument();
 
     expect(() => renderer.updateProps('unknown', {})).not.toThrow();
-    renderer.unmountAll();
+    await act(async () => renderer.unmountAll());
   });
 
   it('adapts Filament fields to value and onChange props', async () => {
@@ -109,7 +109,7 @@ describe('UniversalReactRenderer', () => {
     });
 
     expect(onChange).toHaveBeenCalledWith('Ada!');
-    renderer.unmountAll();
+    await act(async () => renderer.unmountAll());
     componentRegistry.unregister('FieldProbe');
   });
 });

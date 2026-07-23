@@ -5,6 +5,9 @@ import dts from 'vite-plugin-dts';
 
 // Standalone Vite config for React Wrapper package
 export default defineConfig({
+    define: {
+        '__REACT_WRAPPER_RUNTIME_MODE__': JSON.stringify('vite'),
+    },
     plugins: [
         // React plugin for compilation and Fast Refresh
         react({

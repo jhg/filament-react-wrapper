@@ -6,13 +6,18 @@ declare global {
     $call?: (method: string, ...args: unknown[]) => unknown;
     $set?: (path: string, value: unknown) => unknown;
     $get?: (path: string) => unknown;
-    $watch?: (path: string, callback: (value: unknown) => void) => (() => void) | void;
   }
 
   interface LivewireRuntime {
     find(id: string): LivewireComponent | undefined;
     hook?: (name: string, callback: (payload: unknown) => void) => void;
   }
+
+  interface ReactWrapperRuntimeInfo {
+    mode: 'prebuilt' | 'vite' | 'unknown';
+    reactVersion: string;
+  }
+
   interface Window {
     FilamentReact?: {
       ReactWrapper?: Record<string, unknown>;
@@ -33,6 +38,7 @@ declare global {
     ReactWrapperConfig?: unknown;
     universalReactRenderer?: unknown;
     Livewire?: LivewireRuntime;
+    __filamentReactWrapperRuntime?: ReactWrapperRuntimeInfo;
     FilamentBridge?: unknown;
     $filament?: unknown;
     WorkflowCanvas?: unknown;

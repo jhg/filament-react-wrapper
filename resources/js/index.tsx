@@ -3,9 +3,9 @@ import { componentRegistry, registerComponents } from './components/ReactCompone
 import { universalReactRenderer } from './components/UniversalReactRenderer';
 import {
   statePersistenceService,
-  usePersistedState,
   type StatePersistenceConfig,
 } from './services/StatePersistenceService';
+import { usePersistedState } from './hooks/usePersistedState';
 import { devTools } from './services/DevTools';
 import { codeSplittingService } from './services/CodeSplittingService';
 import { componentVersioningService } from './services/ComponentVersioningService';
@@ -33,6 +33,7 @@ import {
 } from './components/SimpleRegistration';
 import { useFilamentBridge, use$wire, filamentBridge } from './services/FilamentBridge';
 import { useReactField } from './hooks/useReactField';
+import { runtimeCanInitialize, runtimeInfo } from './runtimeGuard';
 
 import type { ReactWrapperAPI } from './types';
 import { registerFilamentReactGlobals, setWindowGlobal } from './utils/globals';
@@ -97,8 +98,9 @@ export function bootstrap() {
 }
 
 // Make functionality globally available with namespacing
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && runtimeCanInitialize) {
   const filamentReact = registerFilamentReactGlobals({
+    runtime: runtimeInfo,
     ReactWrapper: {
       componentRegistry,
       universalReactRenderer,
