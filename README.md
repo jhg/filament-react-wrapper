@@ -26,8 +26,7 @@ The supported combinations are tested explicitly in [CI](.github/workflows/ci.ym
 
 ## Core field contract
 
-React fields are ordinary controlled React inputs. One line of PHP connects
-the Filament state to one ordinary React component:
+One line of PHP connects the Filament state to one ordinary React component:
 
 ```php
 ReactField::make('content')->component('RichTextInput');

@@ -76,5 +76,4 @@ class ReactComponentRegistry implements ReactRegistryInterface
             }
         }
     }
-
 }
