@@ -1,6 +1,17 @@
 # Filament React Wrapper
 
-React components inside Laravel and Filament. The Composer package includes a self-contained, prebuilt runtime managed by Filament’s asset system, so a separate NPM package is not required. The package does not register a Filament panel plugin and does not ship a custom Vite plugin.
+Use React components as native Filament fields and widgets. The React side
+receives ordinary props — `value`, `onChange`, `errors` — and never needs to
+know that Livewire or Filament exist. The Filament side registers a field in
+one line of PHP and never touches JavaScript:
+
+```php
+ReactField::make('content')->component('RichTextInput')->required();
+```
+
+The Composer package ships a self-contained, prebuilt React runtime managed by
+Filament’s asset system: no NPM package, no panel plugin, no custom Vite
+plugin. Node.js is only needed for the optional `--dev` workflow.
 
 ## Requirements
 
@@ -14,6 +25,13 @@ React components inside Laravel and Filament. The Composer package includes a se
 The supported combinations are tested explicitly in [CI](.github/workflows/ci.yml); the matrix includes PHP 8.4 and PHP 8.5.
 
 ## Core field contract
+
+React fields are ordinary controlled React inputs. One line of PHP connects
+the Filament state to one ordinary React component:
+
+```php
+ReactField::make('content')->component('RichTextInput');
+```
 
 React fields are ordinary controlled React inputs. Filament supplies `value`
 and `errors`; the component calls `onChange(nextValue)` (or
@@ -78,6 +96,10 @@ The Composer prebuilt runtime bundles React 18.3.x and React DOM 18.3.x privatel
 When developing application-owned components with `--dev`, the package source uses the application’s own `react` and `react-dom`. The installer preserves versions already declared in `package.json`; if they are missing, it installs the tested React 18.3.x baseline. Keep `react` and `react-dom` on the same major version. React 18 and React 19 are tested in CI.
 
 Do not load the prebuilt runtime and the Vite runtime at the same time. `--dev` sets `REACT_WRAPPER_ASSET_MODE=vite` to prevent duplicate React copies and invalid-hook-call errors. The adapter synchronizes server state after Livewire's `morphed` hook, so it does not retain one `$watch()` subscription per container.
+
+If the console reports `Refusing to initialize`, both runtime modes are being
+loaded on the same page. Check `REACT_WRAPPER_ASSET_MODE`, remove the duplicate
+asset, and keep either the prebuilt Composer runtime or the Vite runtime.
 
 ## Quick start
 
