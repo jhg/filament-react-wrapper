@@ -16,6 +16,10 @@ User-facing entry points:
 
 ## Architecture
 
+Documentation rule: introductory examples use `defineComponents({ ... })`;
+show `registerComponent()` and `componentRegistry` only in the advanced API
+section.
+
 ### JavaScript (`resources/js`)
 
 | File | Role |

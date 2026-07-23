@@ -28,13 +28,10 @@ export default function UserCard({ name, email, role = 'User' }: UserCardProps) 
 ```js
 // resources/js/app.js (or the existing app.tsx/app.ts entrypoint)
 import './bootstrap-react';
-import { registerComponent } from '@react-wrapper';
+import { defineComponents } from '@react-wrapper';
 import UserCard from './components/UserCard';
 
-registerComponent('UserCard', UserCard, {
-    defaultProps: { role: 'Member' },
-    metadata: { category: 'users', tags: ['profile'] },
-});
+defineComponents({ UserCard });
 ```
 
 ## 2. Render it in Blade
@@ -66,8 +63,13 @@ use HadyFayed\ReactWrapper\Widgets\ReactWidget;
 
 ReactField::make('profile')
     ->component('RichTextInput')
-    ->required()
-    ->reactive();
+    ->required();
+
+// Opt into debounced server updates while editing:
+ReactField::make('live_profile')
+    ->component('RichTextInput')
+    ->reactive()
+    ->debounce(500);
 
 ReactWidget::component('UserStats')
     ->props(['period' => 'month'])
@@ -97,6 +99,11 @@ The adapter sends the edit to the enclosing Livewire component using the
 field's complete state path, such as `data.profile`. `UserCard` above is a
 display component for `@react`; it is not a substitute for a controlled field
 unless it implements this contract.
+
+Field edits are deferred by default: `$wire.$set(path, value, false)` updates
+the Livewire client state without a request, and the next submit carries the
+latest value. `->reactive()` / `->live()` schedules a debounced server commit
+(300 ms by default); `->debounce(500)` changes that delay.
 
 ## 4. Add local state
 

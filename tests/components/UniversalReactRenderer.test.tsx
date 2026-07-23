@@ -5,7 +5,10 @@ import {
   componentRegistry,
 } from '../../resources/js/components/ReactComponentRegistry';
 import type { IComponentDefinition } from '../../resources/js/interfaces/IComponentRegistry';
-import { UniversalReactRenderer } from '../../resources/js/components/UniversalReactRenderer';
+import {
+  NOT_FOUND_GRACE_MS,
+  UniversalReactRenderer,
+} from '../../resources/js/components/UniversalReactRenderer';
 
 const definition: IComponentDefinition = {
   name: 'RendererProbe',
@@ -16,6 +19,7 @@ const definition: IComponentDefinition = {
 describe('UniversalReactRenderer', () => {
   afterEach(() => {
     componentRegistry.unregister(definition.name);
+    vi.useRealTimers();
   });
 
   it('renders registered components and tracks active containers', async () => {
@@ -40,18 +44,50 @@ describe('UniversalReactRenderer', () => {
   });
 
   it('reports missing containers and renders registry errors', async () => {
+    vi.useFakeTimers();
     const onError = vi.fn();
     const renderer = new UniversalReactRenderer();
+    const missingContainerError = vi.fn();
 
-    renderer.render({ component: 'Missing', containerId: 'missing', onError });
-    expect(onError).toHaveBeenCalledWith(expect.any(Error));
+    renderer.render({ component: 'Missing', containerId: 'missing', onError: missingContainerError });
+    expect(missingContainerError).toHaveBeenCalledWith(expect.any(Error));
 
     document.body.innerHTML = '<div id="error-container"></div>';
     await act(async () => {
       renderer.render({ component: 'Missing', containerId: 'error-container', onError });
     });
+    expect(screen.queryByText(/Component "Missing" not found/)).not.toBeInTheDocument();
+    await act(async () => {
+      vi.advanceTimersByTime(NOT_FOUND_GRACE_MS);
+    });
     expect(screen.getByText(/Component "Missing" not found/)).toBeInTheDocument();
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'ReactWrapperComponentNotFound' })
+    );
     await act(async () => renderer.unmountAll());
+  });
+
+  it('mounts a component registered after the initial render without a rescan', async () => {
+    const renderer = new UniversalReactRenderer();
+    document.body.innerHTML = '<div id="late-container"></div>';
+
+    await act(async () => {
+      renderer.render({ component: 'LateComponent', containerId: 'late-container' });
+    });
+
+    expect(document.getElementById('late-container')?.textContent).toBe('');
+
+    await act(async () => {
+      componentRegistry.register({
+        name: 'LateComponent',
+        component: () => <span>Registered late</span>,
+        isAsync: false,
+      });
+    });
+
+    expect(screen.getByText('Registered late')).toBeInTheDocument();
+    await act(async () => renderer.unmountAll());
+    componentRegistry.unregister('LateComponent');
   });
 
   it('updates props using the container metadata and safely ignores unknown containers', async () => {

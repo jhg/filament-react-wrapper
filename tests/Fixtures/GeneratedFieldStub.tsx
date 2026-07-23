@@ -1,0 +1,20 @@
+import { useReactField, type ReactFieldProps } from '@react-wrapper';
+
+export default function GeneratedFieldStub(props: ReactFieldProps<string>) {
+  const { value, setValue, errors, disabled } = useReactField(props);
+
+  return (
+    <div>
+      <input
+        value={value ?? ''}
+        disabled={disabled}
+        onChange={event => setValue(event.target.value)}
+      />
+      {errors.map(error => (
+        <p key={error} role="alert">
+          {error}
+        </p>
+      ))}
+    </div>
+  );
+}

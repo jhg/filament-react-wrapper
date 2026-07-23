@@ -81,7 +81,7 @@ import SalesChart from './components/SalesChart';
 defineComponents({ UserCard, SalesChart });
 ```
 
-Or register individually:
+For advanced cases, register individually:
 
 ```ts
 import { registerComponent } from '@react-wrapper';
@@ -118,9 +118,11 @@ Declare it in a Filament form with:
 ```php
 ReactField::make('content')
   ->component('MyField')
-  ->required()
-  ->reactive();
+  ->required();
 ```
+
+Fields are deferred by default. Add `->reactive()->debounce(500)` only when
+the server must receive debounced updates while the user is editing.
 
 `ReactField::make('content')` supplies the current `value`. When the input
 calls `setValue(nextValue)`, the adapter resolves the enclosing Livewire

@@ -41,7 +41,8 @@
   },
   "include": [
     "resources/js/**/*",
-    "src/**/*"
+    "src/**/*",
+    "tests/fixtures/GeneratedFieldStub.tsx"
   ],
   "exclude": [
     "node_modules",

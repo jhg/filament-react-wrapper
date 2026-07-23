@@ -3,32 +3,26 @@
 Import public APIs from the package alias:
 
 ```tsx
-import {
-    registerComponent,
-    defineComponents,
-    useFilamentState,
-    useFilamentBridge,
-} from '@react-wrapper';
+import { defineComponents, useFilamentState, useFilamentBridge } from '@react-wrapper';
 ```
 
 ## Registration
 
 ```tsx
-import { defineComponents, registerComponent, componentRegistry } from '@react-wrapper';
-
-registerComponent('UserCard', UserCard, {
-    props: { role: 'Member' },
-    category: 'users',
-});
+import { defineComponents } from '@react-wrapper';
 
 // Recommended for a normal frontend entrypoint:
 defineComponents({ UserCard });
-
-componentRegistry.mount('UserCard', 'user-card', { name: 'Ada' });
 ```
 
-The public registration helpers are `defineComponents`, `registerComponent`,
-`registerLazyComponent`, `Component`, `registerComponents`, `getComponent`,
+`defineComponents()` is the blessed registration path for application-owned
+components. The component's own props should provide defaults rather than a
+registration-time `defaultProps` object.
+
+For advanced cases, `registerComponent()` supports metadata/default props,
+`registerLazyComponent()` handles dynamic imports, and `componentRegistry`
+provides lower-level `register`, `mount`, `unmount`, middleware, and lifecycle
+APIs. The other public helpers are `registerComponents`, `getComponent`,
 `listComponents`, `createComponent`, `mountIsland`, and `autoMountIslands`.
 Normal function components are synchronous by default; dynamic imports must be
 registered explicitly with `registerLazyComponent()` or `isAsync: true` on the
@@ -137,7 +131,8 @@ export default function RichTextInput(props: ReactFieldProps<string>) {
 ```
 
 `setValue(nextValue)` calls the field's `onChange`; the adapter sends that value
-to the full Filament state path, such as `data.content`, through Livewire. The
+to the full Filament state path, such as `data.content`, through deferred
+Livewire client state (`$wire.$set(path, value, false)`). The
 server value is read with `$wire.get(path)` after Livewire's `morphed` hook, so
 the component should render `value` directly instead of maintaining a second
 uncontrolled copy.
@@ -148,6 +143,10 @@ container with `{ detail: { errors: string[] } }`; dispatch
 result through `errors` and `useReactField().errors`. This is local React
 feedback, not a mutation of Filament's server error bag. Server-side Filament
 validation still arrives through the field props after a Livewire render.
+
+`ReactField` is deferred by default. `->reactive()` and `->live()` opt into a
+debounced server commit (300 ms by default); `->debounce(500)` customizes the
+delay without changing the controlled React contract.
 
 ## Livewire bridge
 

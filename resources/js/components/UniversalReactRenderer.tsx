@@ -14,6 +14,8 @@ export interface ReactRendererProps {
   onMounted?: () => void;
 }
 
+export const NOT_FOUND_GRACE_MS = 3000;
+
 // Error boundary component
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -69,10 +71,29 @@ const UniversalReactWrapper: React.FC<{
   statePath?: string;
 }> = React.memo(
   ({ componentName, componentProps, onDataChange, onError }) => {
-    // Use useMemo to cache the component definition lookup
-    const componentDef = React.useMemo(() => {
-      return componentRegistry.get(componentName);
-    }, [componentName]);
+    const subscribe = React.useCallback(
+      (listener: () => void) => componentRegistry.subscribe(listener),
+      []
+    );
+    const getSnapshot = React.useCallback(
+      () => componentRegistry.get(componentName),
+      [componentName]
+    );
+    const componentDef = React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+    const [missingGraceExpired, setMissingGraceExpired] = React.useState(false);
+    const missingErrorReported = React.useRef<string | null>(null);
+
+    React.useEffect(() => {
+      if (componentDef) {
+        setMissingGraceExpired(false);
+        missingErrorReported.current = null;
+        return;
+      }
+
+      const timeout = window.setTimeout(() => setMissingGraceExpired(true), NOT_FOUND_GRACE_MS);
+
+      return () => window.clearTimeout(timeout);
+    }, [componentDef, componentName]);
 
     // Always call useMemo for Component to avoid conditional hooks
     const Component:
@@ -113,10 +134,27 @@ const UniversalReactWrapper: React.FC<{
       return props;
     }, [componentDef?.defaultProps, componentProps, onDataChange]);
 
-    // Handle missing component after all hooks have been called
-    if (!componentDef || !Component) {
-      const error = new Error(`Component "${componentName}" not found in registry`);
+    React.useEffect(() => {
+      if (componentDef || !missingGraceExpired || missingErrorReported.current === componentName) {
+        return;
+      }
+
+      const error = new Error(
+        `Component "${componentName}" was not registered within ${NOT_FOUND_GRACE_MS}ms. ` +
+          `Did you forget defineComponents({ ${componentName} }) in your entrypoint, ` +
+          'or is the entrypoint missing from the Vite inputs?'
+      );
+      error.name = 'ReactWrapperComponentNotFound';
+      missingErrorReported.current = componentName;
+      console.warn(`[React Wrapper] ${error.message}`);
       onError?.(error);
+    }, [componentDef, componentName, missingGraceExpired, onError]);
+
+    // Keep the initial grace period silent so late registration can mount
+    // without a visible error or a rescan of the DOM.
+    if (!componentDef || !Component) {
+      if (!missingGraceExpired) return null;
+
       return (
         <div className="p-4 border border-yellow-300 rounded-md bg-yellow-50">
           <p className="text-yellow-800">

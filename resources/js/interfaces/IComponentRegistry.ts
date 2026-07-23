@@ -64,6 +64,7 @@ export interface IHookManager {
 
 export interface IComponentRegistry {
   register(definition: IComponentDefinition): void;
+  subscribe(listener: () => void): () => void;
   get(name: string): IComponentDefinition | undefined;
   create(name: string, props?: ComponentProps): ReactComponent | null;
   has(name: string): boolean;

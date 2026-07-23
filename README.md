@@ -13,6 +13,32 @@ React components inside Laravel and Filament. The Composer package includes a se
 
 The supported combinations are tested explicitly in [CI](.github/workflows/ci.yml); the matrix includes PHP 8.4 and PHP 8.5.
 
+## Core field contract
+
+React fields are ordinary controlled React inputs. Filament supplies `value`
+and `errors`; the component calls `onChange(nextValue)` (or
+`useReactField().setValue(nextValue)`). It never needs to know about Livewire:
+
+```tsx
+import { useReactField, type ReactFieldProps } from '@react-wrapper';
+
+export default function RichTextInput(props: ReactFieldProps<string>) {
+    const { value, setValue, errors } = useReactField(props);
+
+    return (
+        <>
+            <textarea value={value ?? ''} onChange={event => setValue(event.target.value)} />
+            {errors.map(error => <p key={error}>{error}</p>)}
+        </>
+    );
+}
+```
+
+`ReactField::make('content')->component('RichTextInput')` is deferred by
+default: every edit updates Livewire's client state without a request, so the
+next submit cannot lose the value. Add `->reactive()` or `->live()` for a
+debounced server commit, and `->debounce(500)` to choose the delay.
+
 ## Installation
 
 ```bash
@@ -133,8 +159,13 @@ ReactField::make('content')
     ->component('RichEditor')
     ->props(['toolbar' => ['bold', 'italic']])
     ->height(420)
-    ->lazy()
-    ->reactive();
+    ->lazy();
+
+// Optional live server updates, debounced by 500 ms:
+ReactField::make('live_content')
+    ->component('RichEditor')
+    ->reactive()
+    ->debounce(500);
 ```
 
 ### React widget
@@ -208,6 +239,7 @@ See the complete Page PHP, Blade, and TSX example in docs/api/php.md.
         data-react-props='@js(["value" => $filters])'
         data-react-state-path="filters"
         data-react-reactive="true"
+        data-react-debounce="300"
         wire:ignore
     ></div>
 </x-filament-panels::page>
@@ -228,8 +260,7 @@ the React component:
 ReactField::make('content')
     ->label('Content')
     ->component('RichTextInput')
-    ->required()
-    ->reactive();
+    ->required();
 ```
 
 Register `RichTextInput` in the application entrypoint and implement it as a
@@ -264,10 +295,15 @@ ReactField::make('content')
   -> data-react-state-path="data.content"
   -> React calls setValue(nextValue)
   -> adapter resolves the nearest wire:id
-  -> $wire.$set('data.content', nextValue)
+  -> $wire.$set('data.content', nextValue, false)
   -> Filament/Livewire can validate and rerender
   -> Livewire's morphed hook reads the server value with $wire.get()
 ```
+
+`->reactive()` does not change the deferred client update; it schedules one
+debounced `$wire.$commit()` after the last edit. This keeps Filament's default
+deferred behavior while making live fields predictable and avoiding a request
+per keystroke.
 
 Keep the input controlled: render the current `value` and call `setValue` (or
 `onChange`) for every user edit. Do not copy the initial value into separate
@@ -279,7 +315,7 @@ For a subclass, call `$this->withComponent('DashboardChart')` in its constructor
 
 Both integrations keep the React DOM under `wire:ignore`. For a field, the
 runtime reads Filament’s full state path (for example `data.content`), finds
-the nearest Livewire `wire:id`, calls `$wire.$set(path, value)`, and uses
+the nearest Livewire `wire:id`, calls `$wire.$set(path, value, false)`, and uses
 Livewire's `morphed` hook to read server-to-React updates with `$wire.get(path)`.
 This also applies to
 fields inserted later into modals, repeaters, wizards, and slideovers. Widget
@@ -464,10 +500,10 @@ php artisan optimize:clear
 
 Common checks:
 
-- A custom component requires `--dev`, an app entrypoint import, and a matching `registerComponent()` name.
+- A custom component requires `--dev`, an app entrypoint import, and a matching `defineComponents({ ComponentName })` entry.
 - An alias error means `@react-wrapper` is missing or points to the wrong published source directory.
 - A stale prebuilt asset is fixed with `php artisan filament-react:assets --force`.
-- A reactive field must use `->reactive()` and the rendered page should receive `react-data-changed` events.
+- Fields are deferred by default; use `->reactive()`/`->live()` plus `->debounce()` only when server-side updates are needed while editing.
 - The bridge uses Livewire when available and falls back to HTTP only when configured; review CSRF/authentication policy before enabling that fallback in production.
 
 ## Testing and quality

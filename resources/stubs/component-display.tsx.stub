@@ -1,0 +1,9 @@
+// Filament React component category: {{ category }}
+
+interface {{ name }}Props {
+    title?: string;
+}
+
+export default function {{ name }}({ title = '{{ name }}' }: {{ name }}Props) {
+    return <div>{title}</div>;
+}

@@ -29,7 +29,7 @@ class ComponentCommand extends Command
         $this->info("🎯 Creating React component: {$name}");
 
         // Create the React component
-        $this->createReactComponent($name, $category, $lazy);
+        $this->createReactComponent($name, $category, $widget, $field);
 
         // Create widget if requested
         if ($widget) {
@@ -42,15 +42,20 @@ class ComponentCommand extends Command
         }
 
         $this->info("✅ Component {$name} created successfully!");
-        $this->showUsageExample($name, $widget, $field);
+        $this->showUsageExample($name, $widget, $field, $lazy);
 
         return 0;
     }
 
-    private function createReactComponent(string $name, string $category, bool $lazy)
+    private function createReactComponent(
+        string $name,
+        string $category,
+        bool $widget,
+        bool $field,
+    ): void
     {
         $componentDir = resource_path('js/components');
-        File::makeDirectory($componentDir, 0755, true);
+        File::ensureDirectoryExists($componentDir, 0755);
 
         $componentFile = "{$componentDir}/{$name}.tsx";
 
@@ -59,53 +64,15 @@ class ComponentCommand extends Command
             return;
         }
 
-        $lazyDecorator = $lazy ? 'lazy: true, ' : '';
-        $componentTemplate = <<<TSX
-import React from 'react';
-import { Component } from '@react-wrapper';
-import { useFilamentState, useFilamentBridge } from '@react-wrapper';
-
-interface {$name}Props {
-    title?: string;
-    // Add your props here
-}
-
-@Component('{$name}', { {$lazyDecorator}category: '{$category}' })
-export const {$name}: React.FC<{$name}Props> = ({ title = 'Default Title' }) => {
-    const { \$filament } = useFilamentBridge();
-    const [data, setData] = useFilamentState('{$name}.data', {});
-
-    const handleAction = async () => {
-        try {
-            const result = await \$filament.call('handle{$name}Action', data);
-            console.log('Action result:', result);
-        } catch (error) {
-            console.error('Action failed:', error);
-        }
-    };
-
-    return (
-        <div className="p-4 border rounded-lg">
-            <h3 className="text-lg font-semibold mb-4">{title}</h3>
-            
-            <div className="space-y-4">
-                <p className="text-gray-600">
-                    This is your new {$name} component.
-                </p>
-                
-                <button
-                    onClick={handleAction}
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                    Action Button
-                </button>
-            </div>
-        </div>
-    );
-};
-
-export default {$name};
-TSX;
+        $stub = $field
+            ? 'component-field.tsx.stub'
+            : ($widget ? 'component-widget.tsx.stub' : 'component-display.tsx.stub');
+        $stubPath = __DIR__.'/../../resources/stubs/'.$stub;
+        $componentTemplate = str_replace(
+            ['{{ name }}', '{{ category }}'],
+            [$name, $category],
+            File::get($stubPath),
+        );
 
         File::put($componentFile, $componentTemplate);
         $this->info("   ✅ React component created: {$componentFile}");
@@ -114,7 +81,7 @@ TSX;
     private function createWidget(string $name)
     {
         $widgetDir = app_path('Filament/Widgets');
-        File::makeDirectory($widgetDir, 0755, true);
+        File::ensureDirectoryExists($widgetDir, 0755);
 
         $widgetFile = "{$widgetDir}/{$name}Widget.php";
 
@@ -156,7 +123,7 @@ PHP;
     private function createField(string $name)
     {
         $fieldDir = app_path('Filament/Components');
-        File::makeDirectory($fieldDir, 0755, true);
+        File::ensureDirectoryExists($fieldDir, 0755);
 
         $fieldFile = "{$fieldDir}/{$name}Field.php";
 
@@ -193,14 +160,20 @@ PHP;
         $this->info("   ✅ Field created: {$fieldFile}");
     }
 
-    private function showUsageExample(string $name, bool $widget, bool $field)
+    private function showUsageExample(string $name, bool $widget, bool $field, bool $lazy): void
     {
         $this->info('📖 Usage examples:');
         
-        // React component usage
+        // React component usage and registration
         $this->line("React component usage:");
-        $this->line("import { {$name} } from './components/{$name}';");
-        $this->line("// Component is auto-registered via decorator");
+        $this->line("import {$name} from './components/{$name}';");
+        if ($lazy) {
+            $this->line("import { registerLazyComponent } from '@react-wrapper';");
+            $this->line("registerLazyComponent('{$name}', () => import('./components/{$name}'));");
+        } else {
+            $this->line("import { defineComponents } from '@react-wrapper';");
+            $this->line("defineComponents({ {$name} });");
+        }
         $this->line('');
 
         // Widget usage
@@ -219,11 +192,11 @@ PHP;
         // Field usage
         if ($field) {
             $this->line("Form field usage:");
-            $this->line("use App\\Filament\\Components\\{$name}Field;");
+            $this->line("use HadyFayed\\ReactWrapper\\Forms\\Components\\ReactField;");
             $this->line('');
-            $this->line("{$name}Field::make('field_name')");
-            $this->line("    ->reactive()");
-            $this->line("    ->lazy(),");
+            $this->line("ReactField::make('field_name')");
+            $this->line("    ->component('{$name}'),");
+            $this->line("// Optional live server updates: ->reactive()->debounce(500)");
             $this->line('');
         }
 

@@ -1,0 +1,13 @@
+interface {{ name }}Props {
+    data?: Record<string, unknown>;
+}
+
+// Filament React widget category: {{ category }}
+export default function {{ name }}({ data = {} }: {{ name }}Props) {
+    return (
+        <div>
+            <h2>{'{{ name }}'}</h2>
+            <pre>{JSON.stringify(data, null, 2)}</pre>
+        </div>
+    );
+}

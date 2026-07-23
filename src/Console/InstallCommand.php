@@ -271,21 +271,18 @@ JS;
 
         // Create demo directory
         $demoDir = resource_path('js/components/demo');
-        File::makeDirectory($demoDir, 0755, true);
+        File::ensureDirectoryExists($demoDir, 0755);
 
         // Simple Counter component
         $counterComponent = <<<'TSX'
-import React from 'react';
-import { Component } from '@react-wrapper';
-import { useFilamentState } from '@react-wrapper';
+import { useState } from 'react';
 
 interface CounterProps {
     initialCount?: number;
 }
 
-@Component('Counter', { category: 'demo', lazy: false })
-export const Counter: React.FC<CounterProps> = ({ initialCount = 0 }) => {
-    const [count, setCount] = useFilamentState('counter.value', initialCount);
+export const Counter = ({ initialCount = 0 }: CounterProps) => {
+    const [count, setCount] = useState(initialCount);
 
     return (
         <div className="p-4 border rounded-lg">
@@ -322,10 +319,6 @@ TSX;
 
         // User Card component
         $userCardComponent = <<<'TSX'
-import React from 'react';
-import { Component } from '@react-wrapper';
-import { useFilamentBridge } from '@react-wrapper';
-
 interface User {
     id: number;
     name: string;
@@ -338,27 +331,9 @@ interface UserCardProps {
     showActions?: boolean;
 }
 
-@Component('UserCard', { category: 'demo', lazy: false })
-export const UserCard: React.FC<UserCardProps> = ({ user, showActions = true }) => {
-    const { $filament } = useFilamentBridge();
-
-    const handleEdit = async () => {
-        try {
-            await $filament.call('editUser', user.id);
-        } catch (error) {
-            console.error('Failed to edit user:', error);
-        }
-    };
-
-    const handleDelete = async () => {
-        if (confirm('Are you sure you want to delete this user?')) {
-            try {
-                await $filament.call('deleteUser', user.id);
-            } catch (error) {
-                console.error('Failed to delete user:', error);
-            }
-        }
-    };
+export const UserCard = ({ user, showActions = true }: UserCardProps) => {
+    const handleEdit = () => console.info('Edit user', user.id);
+    const handleDelete = () => console.info('Delete user', user.id);
 
     return (
         <div className="bg-white rounded-lg shadow-md p-6">

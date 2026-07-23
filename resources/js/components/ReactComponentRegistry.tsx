@@ -17,6 +17,7 @@ class ReactComponentRegistry implements IComponentRegistry {
   private events: IEventSystem = new EventSystem();
   private extensions: Map<string, unknown> = new Map();
   private middleware: Array<IComponentMiddleware> = [];
+  private subscribers = new Set<() => void>();
   // Component factory for future extensibility
   // private componentFactory: ComponentFactoryManager =
   //   new ComponentFactoryManager();
@@ -94,6 +95,15 @@ class ReactComponentRegistry implements IComponentRegistry {
     this.events.emit('component:registered', {
       definition: processedDefinition,
     });
+    this.notifySubscribers();
+  }
+
+  subscribe(listener: () => void): () => void {
+    this.subscribers.add(listener);
+
+    return () => {
+      this.subscribers.delete(listener);
+    };
   }
 
   /**
@@ -236,6 +246,7 @@ class ReactComponentRegistry implements IComponentRegistry {
       this.events.emit('component:unregistering', { name });
       const result = this.components.delete(name);
       this.events.emit('component:unregistered', { name });
+      this.notifySubscribers();
       return result;
     }
     return false;
@@ -248,6 +259,7 @@ class ReactComponentRegistry implements IComponentRegistry {
     this.events.emit('registry:clearing');
     this.components.clear();
     this.events.emit('registry:cleared');
+    this.notifySubscribers();
   }
 
   /**
@@ -285,6 +297,10 @@ class ReactComponentRegistry implements IComponentRegistry {
     });
 
     return stats;
+  }
+
+  private notifySubscribers(): void {
+    this.subscribers.forEach(listener => listener());
   }
 
   /**
