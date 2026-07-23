@@ -4,6 +4,8 @@
     $containerId = $getContainerId();
     $height = $getHeight();
     $isLazy = $componentProps['lazy'] ?? true;
+    $isReactive = $componentProps['reactive'] ?? false;
+    $debounceMs = $componentProps['debounceMs'] ?? 300;
 @endphp
 
 <x-dynamic-component :component="$getFieldWrapperView()" :field="$field">
@@ -12,7 +14,8 @@
         data-react-component="{{ $componentName }}"
         data-react-props="{{ json_encode($componentProps, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}"
         data-react-state-path="{{ $getStatePath() }}"
-        data-react-reactive="{{ ($reactive ?? true) ? 'true' : 'false' }}"
+        data-react-reactive="{{ $isReactive ? 'true' : 'false' }}"
+        data-react-debounce="{{ $debounceMs }}"
         data-lazy="{{ $isLazy ? 'true' : 'false' }}"
         class="react-field-container"
         style="min-height: {{ $height }}px;"

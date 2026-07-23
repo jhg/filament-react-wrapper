@@ -63,7 +63,7 @@ describe('prebuilt Composer runtime', () => {
       container.setAttribute('wire:id', 'prebuilt-livewire');
       container.innerHTML =
         '<div id="prebuilt-input" data-react-component="PrebuiltInput" ' +
-        'data-react-state-path="data.content" data-react-reactive="true" ' +
+        'data-react-state-path="data.content" data-react-reactive="false" ' +
         'data-react-props=\'{"isField":true,"value":"from server","errors":[]}\'></div>';
       dom.window.document.body.append(container);
 
@@ -72,7 +72,7 @@ describe('prebuilt Composer runtime', () => {
         button.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
       });
 
-      expect(set).toHaveBeenCalledWith('data.content', 'from prebuilt React');
+      expect(set).toHaveBeenCalledWith('data.content', 'from prebuilt React', false);
 
       livewireValue = 'server update';
       await act(async () => morphCallback?.());

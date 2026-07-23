@@ -84,6 +84,18 @@ class ReactWidget extends Widget
         return $this;
     }
 
+    public function live(bool $live = true): static
+    {
+        $this->reactComponent->live($live);
+        return $this;
+    }
+
+    public function debounce(int $ms = 300): static
+    {
+        $this->reactComponent->debounce($ms);
+        return $this;
+    }
+
     public function dependencies(array $dependencies): static
     {
         $this->reactComponent->dependencies($dependencies);
@@ -152,7 +164,8 @@ class ReactWidget extends Widget
             'pollingInterval' => $this->pollingInterval,
             'assetData' => $this->getAssetData(),
             'lazy' => $this->reactComponent->getComponentProps()['lazy'] ?? static::isLazy(),
-            'reactive' => $this->reactComponent->getComponentProps()['reactive'] ?? true,
+            'reactive' => $this->reactComponent->getComponentProps()['reactive'] ?? false,
+            'debounceMs' => $this->reactComponent->getComponentProps()['debounceMs'] ?? 300,
             'script' => $this->generateWidgetScript(),
         ]);
     }

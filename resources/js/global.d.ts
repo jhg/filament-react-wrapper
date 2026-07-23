@@ -1,11 +1,12 @@
 declare global {
   interface LivewireComponent {
     call?: (method: string, ...args: unknown[]) => unknown;
-    set?: (path: string, value: unknown) => unknown;
+    set?: (path: string, value: unknown, live?: boolean) => unknown;
     get?: (path: string) => unknown;
     $call?: (method: string, ...args: unknown[]) => unknown;
-    $set?: (path: string, value: unknown) => unknown;
+    $set?: (path: string, value: unknown, live?: boolean) => unknown;
     $get?: (path: string) => unknown;
+    $commit?: () => Promise<unknown>;
   }
 
   interface LivewireRuntime {

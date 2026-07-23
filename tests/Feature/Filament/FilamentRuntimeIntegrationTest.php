@@ -17,6 +17,8 @@ class FilamentRuntimeIntegrationTest extends TestCase
 
         $this->assertSame('data.content', $container->getAttribute('data-react-state-path'));
         $this->assertTrue($container->hasAttribute('wire:ignore'));
+        $this->assertSame('false', $container->getAttribute('data-react-reactive'));
+        $this->assertSame('300', $container->getAttribute('data-react-debounce'));
 
         $props = json_decode(
             html_entity_decode($container->getAttribute('data-react-props'), ENT_QUOTES | ENT_HTML5),
@@ -66,6 +68,8 @@ class FilamentRuntimeIntegrationTest extends TestCase
         $this->assertStringContainsString('data-react-component="IntegrationDashboard"', $html);
         $this->assertStringContainsString('data-polling="true"', $html);
         $this->assertStringContainsString('data-polling-interval="2s"', $html);
+        $this->assertStringContainsString('data-react-reactive="false"', $html);
+        $this->assertStringContainsString('data-react-debounce="300"', $html);
         $this->assertStringContainsString('test-widget', $html);
 
         $test

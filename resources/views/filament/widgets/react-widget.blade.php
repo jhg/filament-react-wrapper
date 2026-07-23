@@ -6,6 +6,8 @@
     $isLazy = $lazy ?? true;
     $polling = $polling ?? false;
     $pollingInterval = $pollingInterval ?? '5s';
+    $isReactive = $reactive ?? ($componentProps['reactive'] ?? false);
+    $debounceMs = $debounceMs ?? ($componentProps['debounceMs'] ?? 300);
     $heading = $heading ?? null;
     $description = $description ?? null;
 @endphp
@@ -24,6 +26,8 @@
             id="{{ $containerId }}"
             data-react-component="{{ $componentName }}"
             data-react-props="{{ json_encode($componentProps, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}"
+            data-react-reactive="{{ $isReactive ? 'true' : 'false' }}"
+            data-react-debounce="{{ $debounceMs }}"
             data-lazy="{{ $isLazy ? 'true' : 'false' }}"
             data-polling="{{ $polling ? 'true' : 'false' }}"
             data-polling-interval="{{ $pollingInterval }}"

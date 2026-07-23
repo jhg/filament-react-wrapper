@@ -66,7 +66,7 @@ describe('FilamentReactAdapter', () => {
     morphCallback?.();
 
     expect(window.Livewire.find).toHaveBeenCalledWith('lw-1');
-    expect(set).toHaveBeenCalledWith('data.profile.name', 'From React');
+    expect(set).toHaveBeenCalledWith('data.profile.name', 'From React', false);
     expect(hook).toHaveBeenCalledWith('morphed', expect.any(Function));
     expect(get).toHaveBeenCalledWith('data.profile.name');
     expect(updateProps).toHaveBeenCalledWith('profile-field', { value: 'From Livewire' });
@@ -89,6 +89,76 @@ describe('FilamentReactAdapter', () => {
     expect(render).toHaveBeenCalledTimes(2);
     expect(document.getElementById('valid')?.dataset.reactRendered).toBe('true');
     expect(document.getElementById('invalid')?.dataset.reactRendered).toBe('true');
+  });
+
+  it('always sends deferred updates and debounces live commits', async () => {
+    vi.useFakeTimers();
+    const set = vi.fn();
+    const commit = vi.fn(() => Promise.resolve());
+    let rendererProps: Parameters<typeof universalReactRenderer.render>[0] | undefined;
+    const render = vi.spyOn(universalReactRenderer, 'render').mockImplementation(props => {
+      rendererProps = props;
+      props.onMounted?.();
+    });
+
+    window.Livewire = {
+      find: vi.fn(() => ({ $set: set, $commit: commit })),
+      hook: vi.fn(),
+    };
+    vi.spyOn(universalReactRenderer, 'hasActiveComponent').mockReturnValue(true);
+    document.body.innerHTML =
+      '<div wire:id="live-component"><div id="reactive-field" data-react-component="ProfileField" ' +
+      'data-react-state-path="data.content" data-react-reactive="true" ' +
+      'data-react-debounce="300" data-react-props="{}"></div></div>';
+
+    FilamentReactAdapter.initializeComponents();
+    vi.runAllTimers();
+    expect(render).toHaveBeenCalledTimes(1);
+
+    rendererProps?.onDataChange?.('one');
+    rendererProps?.onDataChange?.('two');
+    rendererProps?.onDataChange?.('three');
+
+    expect(set).toHaveBeenCalledTimes(3);
+    expect(set).toHaveBeenNthCalledWith(1, 'data.content', 'one', false);
+    expect(set).toHaveBeenNthCalledWith(3, 'data.content', 'three', false);
+    expect(commit).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(299);
+    expect(commit).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    await Promise.resolve();
+    expect(commit).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears a pending live commit when a field is removed', async () => {
+    vi.useFakeTimers();
+    const set = vi.fn();
+    const commit = vi.fn(() => Promise.resolve());
+    let rendererProps: Parameters<typeof universalReactRenderer.render>[0] | undefined;
+    vi.spyOn(universalReactRenderer, 'render').mockImplementation(props => {
+      rendererProps = props;
+      props.onMounted?.();
+    });
+    vi.spyOn(universalReactRenderer, 'hasActiveComponent').mockReturnValue(true);
+    window.Livewire = {
+      find: vi.fn(() => ({ $set: set, $commit: commit })),
+      hook: vi.fn(),
+    };
+    document.body.innerHTML =
+      '<div wire:id="live-component"><div id="reactive-field" data-react-component="ProfileField" ' +
+      'data-react-state-path="data.content" data-react-reactive="true" ' +
+      'data-react-debounce="300" data-react-props="{}"></div></div>';
+
+    FilamentReactAdapter.initializeComponents();
+    vi.runAllTimers();
+    rendererProps?.onDataChange?.('pending');
+    document.querySelector('[data-react-component]')?.remove();
+    await Promise.resolve();
+    vi.advanceTimersByTime(300);
+
+    expect(set).toHaveBeenCalledWith('data.content', 'pending', false);
+    expect(commit).not.toHaveBeenCalled();
   });
 
   it('pushes server-rendered props into an existing React island after a Livewire morph', () => {

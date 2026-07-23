@@ -4,10 +4,12 @@ import { runtimeCanInitialize } from '../../runtimeGuard';
 type Cleanup = () => void;
 type LivewireWire = {
   call?: (method: string, ...args: unknown[]) => unknown;
-  set?: (path: string, value: unknown) => unknown;
+  set?: (path: string, value: unknown, live?: boolean) => unknown;
   get?: (path: string) => unknown;
   $call?: (method: string, ...args: unknown[]) => unknown;
-  $set?: (path: string, value: unknown) => unknown;
+  $set?: (path: string, value: unknown, live?: boolean) => unknown;
+  $get?: (path: string) => unknown;
+  $commit?: () => Promise<unknown>;
   $wire?: LivewireWire;
 };
 
@@ -21,6 +23,7 @@ export class FilamentReactAdapter {
   static mutationObserver: MutationObserver | null = null;
   private static containerCleanups = new Map<string, Cleanup>();
   private static renderedProps = new Map<string, string>();
+  private static commitTimers = new Map<string, number>();
   private static lifecycleListenersRegistered = false;
   private static livewireRuntime: unknown;
 
@@ -77,11 +80,12 @@ export class FilamentReactAdapter {
 
         const component = this.getLivewireComponent(element);
         const wire = component && this.getWireProxy(component);
-        if (!wire?.get) return;
+        const getter = wire?.$get ?? wire?.get;
+        if (!getter) return;
 
         try {
           universalReactRenderer.updateProps(element.id, {
-            value: wire.get(statePath),
+            value: getter.call(wire, statePath),
           });
         } catch (error) {
           console.warn(`Unable to read Livewire state at "${statePath}":`, error);
@@ -127,8 +131,12 @@ export class FilamentReactAdapter {
           containerId: element.id,
           statePath,
           onDataChange: data => {
-            if (statePath && element.dataset.reactReactive !== 'false') {
+            if (statePath) {
               this.setLivewireState(element, statePath, data);
+
+              if (element.dataset.reactReactive === 'true') {
+                this.scheduleLiveCommit(element, statePath, data);
+              }
             }
 
             element.dispatchEvent(
@@ -150,8 +158,12 @@ export class FilamentReactAdapter {
             );
           },
           onError: error => {
-            console.error(`Error in Filament React component "${componentName}":`, error);
-            element.removeAttribute('data-react-rendered');
+            const isMissingComponent = error.name === 'ReactWrapperComponentNotFound';
+            (isMissingComponent ? console.warn : console.error)(
+              `Error in Filament React component "${componentName}":`,
+              error
+            );
+            if (!isMissingComponent) element.removeAttribute('data-react-rendered');
             element.dispatchEvent(
               new CustomEvent('react-error', {
                 detail: {
@@ -164,7 +176,10 @@ export class FilamentReactAdapter {
           },
         });
       } catch (error) {
-        element.removeAttribute('data-react-rendered');
+        const renderError = error as Error;
+        if (renderError.name !== 'ReactWrapperComponentNotFound') {
+          element.removeAttribute('data-react-rendered');
+        }
         element.dispatchEvent(
           new CustomEvent('react-error', {
             detail: {
@@ -295,10 +310,40 @@ export class FilamentReactAdapter {
     const setter = wire?.$set ?? wire?.set;
 
     if (setter) {
-      void Promise.resolve(setter.call(wire, statePath, value)).catch(error => {
+      void Promise.resolve(setter.call(wire, statePath, value, false)).catch(error => {
         console.error(`Unable to update Livewire state at "${statePath}":`, error);
       });
     }
+  }
+
+  private static scheduleLiveCommit(element: HTMLElement, statePath: string, value: unknown): void {
+    const existingTimer = this.commitTimers.get(element.id);
+    if (existingTimer !== undefined) window.clearTimeout(existingTimer);
+
+    const parsedDebounce = Number.parseInt(element.dataset.reactDebounce ?? '300', 10);
+    const debounceMs = Number.isFinite(parsedDebounce) ? Math.max(parsedDebounce, 0) : 300;
+    const timer = window.setTimeout(() => {
+      this.commitTimers.delete(element.id);
+
+      const component = this.getLivewireComponent(element);
+      const wire = component && this.getWireProxy(component);
+      if (!wire) return;
+
+      const commit = wire.$commit;
+      const setter = wire.$set ?? wire.set;
+
+      try {
+        const result = commit ? commit.call(wire) : setter?.call(wire, statePath, value, true);
+
+        void Promise.resolve(result).catch(error => {
+          console.error(`Unable to commit Livewire state at "${statePath}":`, error);
+        });
+      } catch (error) {
+        console.error(`Unable to commit Livewire state at "${statePath}":`, error);
+      }
+    }, debounceMs);
+
+    this.commitTimers.set(element.id, timer);
   }
 
   /**
@@ -385,6 +430,11 @@ export class FilamentReactAdapter {
 
   private static cleanupContainer(element: HTMLElement): void {
     if (!element.id) return;
+    const commitTimer = this.commitTimers.get(element.id);
+    if (commitTimer !== undefined) {
+      window.clearTimeout(commitTimer);
+      this.commitTimers.delete(element.id);
+    }
     this.containerCleanups.get(element.id)?.();
     this.renderedProps.delete(element.id);
     if (universalReactRenderer.hasActiveComponent(element.id)) {
@@ -398,6 +448,8 @@ export class FilamentReactAdapter {
     this.mutationObserver = null;
     if (this.scanTimeout) clearTimeout(this.scanTimeout);
     this.scanTimeout = null;
+    this.commitTimers.forEach(timer => window.clearTimeout(timer));
+    this.commitTimers.clear();
     document.querySelectorAll<HTMLElement>('[data-react-component]').forEach(element => {
       this.cleanupContainer(element);
     });

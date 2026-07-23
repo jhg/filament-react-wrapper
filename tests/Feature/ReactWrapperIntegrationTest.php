@@ -73,6 +73,27 @@ class ReactWrapperIntegrationTest extends TestCase
         $this->assertStringContainsString('react-wrapper::filament.widgets.react-widget', $widget->render()->name());
     }
 
+    public function test_react_fields_are_deferred_by_default_and_support_live_debounce(): void
+    {
+        $field = ReactField::make('content')->component('Editor');
+        $componentProperty = new \ReflectionProperty(ReactField::class, 'reactComponent');
+        $reactComponent = $componentProperty->getValue($field);
+
+        $this->assertFalse($reactComponent->getComponentProps()['reactive']);
+        $this->assertSame(300, $reactComponent->getComponentProps()['debounceMs']);
+
+        $field->reactive()->debounce(500);
+
+        $this->assertTrue($reactComponent->getComponentProps()['reactive']);
+        $this->assertSame(500, $reactComponent->getComponentProps()['debounceMs']);
+
+        $liveField = ReactField::make('summary')->component('Editor')->live(debounce: 700);
+        $liveReactComponent = $componentProperty->getValue($liveField);
+
+        $this->assertTrue($liveReactComponent->getComponentProps()['reactive']);
+        $this->assertSame(700, $liveReactComponent->getComponentProps()['debounceMs']);
+    }
+
     public function test_component_script_escapes_extension_controlled_identifiers(): void
     {
         $componentName = "</script><script>alert('component')</script>";

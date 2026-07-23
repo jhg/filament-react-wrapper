@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ReactField` now exposes the controlled React contract through `value` and
   `onChange`. The former `initialData` field prop has been removed; update
   custom field components to read `value` and call `onChange(nextValue)`.
+- React field changes are now always synchronized to Livewire's client state
+  with deferred `$set(..., false)` semantics. `->reactive()` / `->live()` opt
+  into debounced server commits (300 ms by default); use `->debounce(500)` to
+  customize the live commit delay.
 
 ## [3.1.1] - 2025-07-05
 

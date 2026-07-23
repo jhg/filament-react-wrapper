@@ -50,6 +50,7 @@ describe('Filament runtime contract', () => {
   let morphCallback: (() => void) | undefined;
   const wire = {
     $set: vi.fn(),
+    $commit: vi.fn(() => Promise.resolve()),
     get: vi.fn((path: string) => livewireValues[path]),
     $call: vi.fn(),
   };
@@ -102,7 +103,7 @@ describe('Filament runtime contract', () => {
     await act(async () => {
       fireEvent.click(document.querySelector('[data-testid="controlled-editor"]')!);
     });
-    expect(wire.$set).toHaveBeenCalledWith('data.content', 'edited by real React');
+    expect(wire.$set).toHaveBeenCalledWith('data.content', 'edited by real React', false);
 
     livewireValues['data.content'] = 'updated by Livewire';
     await act(async () => morphCallback?.());
@@ -181,7 +182,7 @@ describe('Filament runtime contract', () => {
     await act(async () => {
       fireEvent.click(document.querySelector('[data-testid="page-island"]')!);
     });
-    expect(wire.$set).toHaveBeenCalledWith('filters', { period: 'year' });
+    expect(wire.$set).toHaveBeenCalledWith('filters', { period: 'year' }, false);
 
     livewireValues.filters = { period: 'week' };
     await act(async () => morphCallback?.());

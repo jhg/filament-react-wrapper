@@ -50,7 +50,6 @@ ReactField::make('content')
     ->props(['toolbar' => ['bold']])
     ->height(420)
     ->lazy()
-    ->reactive()
     ->resizable()
     ->fullscreen()
     ->toolbar(['bold', 'italic'])
@@ -68,6 +67,8 @@ Public methods:
 - `toolbar(array $toolbar): static`
 - `lazy(bool $lazy = true): static`
 - `reactive(bool $reactive = true): static`
+- `live(bool $onBlur = false, int|string|null $debounce = null, bool|Closure|null $condition = true): static`
+- `debounce(int|string|null $delay = 500): static`
 - `validationRules(array $rules): static`
 - `dependencies(array $dependencies): static`
 - `getComponentName(): string`
@@ -91,11 +92,17 @@ The TypeScript helpers are `ReactFieldProps<T>` and the optional
 `useReactField()` hook.
 
 The bridge uses Filament’s complete `getStatePath()` value, not only the field
-name. It resolves the nearest Livewire `wire:id` and calls `$wire.$set()` on
-React changes. After Livewire's `morphed` hook it reads the current value with
-`$wire.get()` and updates React, so it does not retain one `$watch()`
+name. It resolves the nearest Livewire `wire:id` and calls deferred
+`$wire.$set(path, value, false)` on React changes. After Livewire's `morphed`
+hook it reads the current value with `$wire.get()` and updates React, so it
+does not retain one `$watch()`
 subscription per container. Because this logic lives in the runtime
 MutationObserver, fields added after initial page load are supported too.
+
+Fields are deferred by default. `->reactive()` / `->live()` schedule one
+debounced server commit after the last edit; the default delay is 300 ms and
+`->debounce(500)` changes it. This mirrors Filament's normal field semantics:
+client state is always current, while server requests are opt-in.
 
 ### Complete field example
 
@@ -105,8 +112,7 @@ component. The React component remains a normal controlled input:
 ```php
 ReactField::make('content')
     ->component('RichTextInput')
-    ->required()
-    ->reactive();
+    ->required();
 ```
 
 ```tsx
@@ -133,8 +139,8 @@ export default function RichTextInput(props: ReactFieldProps<string>) {
 
 For a form whose schema state path is `data`, `ReactField::make('content')`
 renders `data-react-state-path="data.content"`. The adapter finds the nearest
-Livewire `wire:id` and calls `$wire.$set('data.content', nextValue)` when the
-React input changes. Livewire watchers then update the controlled `value` when
+Livewire `wire:id` and calls `$wire.$set('data.content', nextValue, false)` when
+the React input changes. The `morphed` hook updates the controlled `value` when
 Filament changes or validates the field. The component does not need to know
 that Livewire exists.
 
@@ -180,6 +186,8 @@ Public methods include:
 - `height(int $height): static`
 - `polling(bool|int|string $interval = true): static`
 - `reactive(bool $reactive = true): static`
+- `live(bool $live = true): static`
+- `debounce(int $ms = 300): static`
 - `dependencies(array $dependencies): static`
 - `filters(array $filters): static`
 - `theme(string $theme): static`

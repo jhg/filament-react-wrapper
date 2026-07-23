@@ -14,7 +14,8 @@ abstract class BaseReactComponent
     protected string $containerId;
     protected int $height = 400;
     protected bool $lazy = true;
-    protected bool $reactive = true;
+    protected bool $reactive = false;
+    protected int $debounceMs = 300;
     protected array $dependencies = [];
 
     public function __construct()
@@ -83,6 +84,20 @@ abstract class BaseReactComponent
         return $this;
     }
 
+    /**
+     * Alias that mirrors Filament's live field vocabulary.
+     */
+    public function live(bool $live = true): static
+    {
+        return $this->reactive($live);
+    }
+
+    public function debounce(int $ms): static
+    {
+        $this->debounceMs = max(0, $ms);
+        return $this;
+    }
+
     public function dependencies(array $dependencies): static
     {
         $this->dependencies = $dependencies;
@@ -112,6 +127,7 @@ abstract class BaseReactComponent
             'containerId' => $this->containerId,
             'lazy' => $this->lazy,
             'reactive' => $this->reactive,
+            'debounceMs' => $this->debounceMs,
             'dependencies' => $this->dependencies,
             'csrf_token' => csrf_token(),
         ];
@@ -155,6 +171,7 @@ abstract class BaseReactComponent
             'height' => $this->height,
             'lazy' => $this->lazy,
             'reactive' => $this->reactive,
+            'debounceMs' => $this->debounceMs,
             'dependencies' => $this->dependencies,
             'data' => $data,
             $this->getComponentType() . '_component' => true,

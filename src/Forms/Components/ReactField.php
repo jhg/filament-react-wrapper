@@ -5,6 +5,7 @@ namespace HadyFayed\ReactWrapper\Forms\Components;
 use Filament\Forms\Components\Field;
 use HadyFayed\ReactWrapper\Components\BaseReactComponent;
 use Illuminate\Support\ViewErrorBag;
+use Closure;
 
 class ReactField extends Field
 {
@@ -93,8 +94,51 @@ class ReactField extends Field
 
     public function reactive(bool $reactive = true): static
     {
+        parent::live(false, null, $reactive);
         $this->reactComponent->reactive($reactive);
         return $this;
+    }
+
+    public function live(
+        bool $onBlur = false,
+        int|string|null $debounce = null,
+        bool|Closure|null $condition = true,
+    ): static {
+        parent::live($onBlur, $debounce, $condition);
+        $this->reactComponent->reactive($condition !== false);
+
+        if ($debounce !== null) {
+            $this->reactComponent->debounce($this->debounceMilliseconds($debounce));
+        }
+
+        return $this;
+    }
+
+    public function debounce(int|string|null $delay = 500): static
+    {
+        parent::debounce($delay);
+        $this->reactComponent->debounce($this->debounceMilliseconds($delay));
+        $this->reactComponent->reactive(true);
+
+        return $this;
+    }
+
+    public function getDebounceMs(): int
+    {
+        return $this->reactComponent->getComponentProps()['debounceMs'] ?? 300;
+    }
+
+    private function debounceMilliseconds(int|string|null $delay): int
+    {
+        if (is_int($delay)) {
+            return $delay;
+        }
+
+        if (is_string($delay) && preg_match('/^\d+/', $delay, $matches)) {
+            return (int) $matches[0];
+        }
+
+        return 300;
     }
 
     public function validationRules(array $rules): static
