@@ -7,7 +7,7 @@
 #### 🔗 Simplified Vite Integration
 - The package now uses the application's regular Laravel/Vite setup.
 - No companion Vite plugin is required.
-- Component registration, code splitting, and PHP registry support remain available through the package itself.
+- Component registration and PHP registry support remain available through the package itself.
 
 #### 📚 Documentation Overhaul
 - **Updated README**: Standard Laravel/Vite integration examples

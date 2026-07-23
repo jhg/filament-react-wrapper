@@ -12,8 +12,6 @@ Reference and feature guides:
 - [TypeScript API](api/typescript.md)
 - [Configuration](api/config.md)
 - [State management](state-management.md)
-- [Code splitting](code-splitting.md)
-- [Component versioning](versioning.md)
 - [Developer tools](dev-tools.md)
 - [Testing](testing.md)
 

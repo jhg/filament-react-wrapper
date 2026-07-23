@@ -333,8 +333,7 @@ $registry->registerMany([
 ```
 
 Available methods are `register`, `get`, `has`, `all`, `count`, `unregister`,
-`registerMany`, `addHook`, `executeHooks`, `registerExtension`, and
-`getExtensions`.
+and `registerMany`.
 
 ## AssetManager
 

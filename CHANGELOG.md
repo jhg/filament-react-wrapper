@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with deferred `$set(..., false)` semantics. `->reactive()` / `->live()` opt
   into debounced server commits (300 ms by default); use `->debounce(500)` to
   customize the live commit delay.
+- Removed the unused `codeSplittingService`, `componentVersioningService`, and
+  PHP extension-manager APIs. Use `registerLazyComponent()` with normal React
+  lazy loading, and keep component version policy in the application.
 
 ## [3.1.1] - 2025-07-05
 
@@ -51,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **UPDATED**: All interface definitions synchronized with actual implementation
 - **UPDATED**: Component registry interfaces (`IComponentRegistry`, `IComponentDefinition`, `IComponentConfig`)
 - **UPDATED**: State management integration interfaces
-- **UPDATED**: Service interfaces (`IUniversalRenderer`, `IDevTools`, `ICodeSplittingService`, `IVersioningService`)
+- **UPDATED**: Service interfaces (`IUniversalRenderer`, `IDevTools`)
 - **NEW**: Comprehensive PHP/Laravel API documentation
 - **NEW**: Complete ReactField and ReactWidget API reference
 - **NEW**: AssetManager and VariableShareService documentation

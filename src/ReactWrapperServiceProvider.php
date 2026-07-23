@@ -3,7 +3,6 @@
 namespace HadyFayed\ReactWrapper;
 
 use HadyFayed\ReactWrapper\Services\ReactComponentRegistry;
-use HadyFayed\ReactWrapper\Services\ExtensionManager;
 use HadyFayed\ReactWrapper\Services\AssetManager;
 use HadyFayed\ReactWrapper\Services\VariableShareService;
 use HadyFayed\ReactWrapper\Factories\ReactComponentFactory;
@@ -66,11 +65,6 @@ class ReactWrapperServiceProvider extends ServiceProvider
         // Register Blade components and directives
         $this->app->make(ReactDirective::class)->register();
 
-        // Boot extensions if enabled
-        if (config('react-wrapper.extensions.auto_boot', true)) {
-            $this->app->make(ExtensionManager::class)->boot();
-        }
-
         // Register Filament integration
         $this->registerFilamentIntegration();
 
@@ -95,9 +89,6 @@ class ReactWrapperServiceProvider extends ServiceProvider
         $this->app->singleton(ReactRegistryInterface::class, ReactComponentRegistry::class);
         $this->app->singleton(ReactComponentRegistry::class);
 
-        // Register extension manager
-        $this->app->singleton(ExtensionManager::class);
-
         // Register asset manager
         $this->app->singleton(AssetManager::class);
 
@@ -114,7 +105,6 @@ class ReactWrapperServiceProvider extends ServiceProvider
 
         // Aliases for easier access
         $this->app->alias(ReactComponentRegistry::class, 'react-wrapper.registry');
-        $this->app->alias(ExtensionManager::class, 'react-wrapper.extensions');
         $this->app->alias(AssetManager::class, 'react-wrapper.assets');
         $this->app->alias(VariableShareService::class, 'react-wrapper.variables');
         $this->app->alias(FilamentIntegration::class, 'react-wrapper.filament');
@@ -152,10 +142,6 @@ class ReactWrapperServiceProvider extends ServiceProvider
             logger()->debug("React component registered: {$name}");
         });
 
-        // Extension lifecycle events
-        Event::listen('react-wrapper.extension.registered', function ($extension) {
-            logger()->info("React extension registered: {$extension->getName()}");
-        });
     }
 
     protected function publishAssets(): void
@@ -283,7 +269,6 @@ class ReactWrapperServiceProvider extends ServiceProvider
                 'Build Status' => $this->getBuildStatus(),
                 'Filament Integration' => $this->getFilamentIntegrationStatus(),
                 'Vite Dev Server' => $this->getViteDevServerStatus(),
-                'Extensions Loaded' => $this->getExtensionCount(),
             ]);
         }
     }
@@ -344,17 +329,6 @@ class ReactWrapperServiceProvider extends ServiceProvider
             return $assetManager->isViteDevServerRunning() ? '✓ Running' : '✗ Not running';
         } catch (\Exception $e) {
             return '✗ Error checking server';
-        }
-    }
-
-    protected function getExtensionCount(): string
-    {
-        try {
-            $extensionManager = $this->app->make(ExtensionManager::class);
-            $count = $extensionManager->all()->count();
-            return $count . ($count === 1 ? ' extension' : ' extensions');
-        } catch (\Exception $e) {
-            return 'Error loading extensions';
         }
     }
 

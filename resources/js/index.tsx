@@ -7,8 +7,6 @@ import {
 } from './services/StatePersistenceService';
 import { usePersistedState } from './hooks/usePersistedState';
 import { devTools } from './services/DevTools';
-import { codeSplittingService } from './services/CodeSplittingService';
-import { componentVersioningService } from './services/ComponentVersioningService';
 
 // Enhanced features (MingleJS-inspired)
 import {
@@ -61,10 +59,8 @@ export {
   statePersistenceService,
   usePersistedState,
 
-  // Advanced Services
+  // Diagnostics
   devTools,
-  codeSplittingService,
-  componentVersioningService,
 
   // Simple Registration (MingleJS-inspired)
   Component,
@@ -106,8 +102,6 @@ if (typeof window !== 'undefined' && runtimeCanInitialize) {
       universalReactRenderer,
       statePersistenceService,
       devTools,
-      codeSplittingService,
-      componentVersioningService,
       bootstrap,
     },
   });
@@ -125,8 +119,6 @@ const ReactWrapper: ReactWrapperAPI = {
   universalReactRenderer,
   statePersistenceService,
   devTools,
-  codeSplittingService,
-  componentVersioningService,
   bootstrap,
 };
 

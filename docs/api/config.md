@@ -12,7 +12,6 @@ The supported sections are:
 - `assets`: prebuilt-vs-Vite mode, Filament asset publication, and lazy-loading behavior.
 - `vite`: dev-server URL and manifest paths used by Laravel asset detection.
 - `integrations.filament`: enable or disable the package’s Filament integration.
-- `extensions`: extension auto-boot behavior.
 - `share_routes`: opt-in route data sharing.
 
 Prefer environment variables for deployment-specific values. Keep debug output disabled in production and do not expose sensitive server data as React props.

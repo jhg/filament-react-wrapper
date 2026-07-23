@@ -466,10 +466,10 @@ The public entrypoint exports:
 - `mountIsland`, `autoMountIslands`, and `createComponent`
 - `universalReactRenderer`
 - state and persistence services
-- `codeSplittingService`, `componentVersioningService`, and `devTools`
+- `devTools`
 - `useFilamentBridge` and `use$wire`
 
-The registry accepts synchronous React components and async imports. The code-splitting service resolves lazy components and can preload or invalidate them. Versioning supports aliases and migrations. These features are documented in [the component registry guide](docs/component-registry.md), [code splitting](docs/code-splitting.md), [versioning](docs/versioning.md), and [developer tools](docs/dev-tools.md).
+The registry accepts synchronous React components and explicit async imports through `registerLazyComponent()`. Use application-level React and package tooling for any broader code splitting or component versioning policy. The supported browser diagnostics are documented in [developer tools](docs/dev-tools.md).
 
 ## Configuration
 
@@ -479,7 +479,7 @@ Publish the configuration when needed:
 php artisan vendor:publish --tag=react-wrapper-config
 ```
 
-The main sections are `registry`, `assets`, `vite`, `integrations.filament`, `extensions`, and `share_routes`. Browser diagnostics are controlled by the `devTools` API or the `?react-wrapper-debug=true` query parameter; they are not a package configuration section. The `vite` section describes the application’s dev server/manifest discovery; it is not a package plugin.
+The main sections are `registry`, `assets`, `vite`, `integrations.filament`, and `share_routes`. Browser diagnostics are controlled by the `devTools` API or the `?react-wrapper-debug=true` query parameter; they are not a package configuration section. The `vite` section describes the application’s dev server/manifest discovery; it is not a package plugin.
 
 The relevant asset settings are:
 
@@ -539,7 +539,7 @@ vendor/bin/phpunit -c phpunit.xml.dist
 composer validate --strict
 ```
 
-The Vitest coverage gate includes the registry, both state managers, the renderer/Filament adapter, persistence, eventing, shared helpers, DevTools, code splitting, and versioning services. It enforces at least 60% statements, branches, functions, and lines overall. GitHub Actions tests real Node and PHP/framework combinations, including PHP 8.4 and 8.5.
+The Vitest coverage gate includes the registry, both state managers, the renderer/Filament adapter, persistence, eventing, shared helpers, and DevTools. It enforces at least 60% statements, branches, functions, and lines overall. GitHub Actions tests real Node and PHP/framework combinations, including PHP 8.4 and 8.5.
 
 ## Documentation
 

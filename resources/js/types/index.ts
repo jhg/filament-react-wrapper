@@ -7,7 +7,6 @@ export type { IComponentDefinition, IComponentRegistry } from '../interfaces/ICo
 
 // Import interfaces
 import type { IComponentRegistry } from '../interfaces/IComponentRegistry';
-import type { ReactComponent } from '../interfaces/IComponentRegistry';
 import type { StatePersistenceService } from '../services/StatePersistenceService';
 
 // Main API interface with proper typing
@@ -16,8 +15,6 @@ export interface ReactWrapperAPI {
   readonly universalReactRenderer: IUniversalRenderer;
   readonly statePersistenceService: StatePersistenceService;
   readonly devTools: IDevTools;
-  readonly codeSplittingService: ICodeSplittingService;
-  readonly componentVersioningService: IVersioningService;
   readonly bootstrap: () => boolean;
 }
 
@@ -41,16 +38,4 @@ export interface IDevTools {
   disable(): void;
   isEnabled(): boolean;
   log(message: string, data?: unknown): void;
-}
-
-export interface ICodeSplittingService {
-  loadComponent(name: string): Promise<ReactComponent>;
-  preloadComponent(name: string): Promise<void>;
-  isLoaded(name: string): boolean;
-}
-
-export interface IVersioningService {
-  getVersion(componentName: string): string | undefined;
-  setVersion(componentName: string, version: string): void;
-  isCompatible(componentName: string, requiredVersion: string): boolean;
 }

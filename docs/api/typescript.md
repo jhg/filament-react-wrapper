@@ -165,11 +165,12 @@ The bridge exposes `call`, `emit`, `on`, `set`, `get`, `submit`, `upload`, `vali
 
 `use$wire` provides the small `$wire.call`/`$wire.emit` compatibility surface.
 
-## Advanced services
+## Diagnostics and renderer
 
-- `codeSplittingService`: load, preload, cache, invalidate, and prefetch component modules.
-- `componentVersioningService`: register versions, aliases, compatibility rules, and migrations.
 - `devTools`: enable diagnostics, inspect registered components, and collect performance metrics.
 - `universalReactRenderer`: render and unmount registry components from DOM containers.
 
-These services are exported as singletons from `@react-wrapper`. Keep debug tooling disabled in production.
+Lazy application components should use `registerLazyComponent()` and normal
+React `lazy`/`Suspense` composition. Component version policy belongs to the
+application rather than the wrapper runtime. Keep debug tooling disabled in
+production.

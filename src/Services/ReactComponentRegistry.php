@@ -9,13 +9,10 @@ use Illuminate\Support\Facades\Event;
 class ReactComponentRegistry implements ReactRegistryInterface
 {
     protected Collection $components;
-    protected Collection $extensions;
-    protected array $hooks = [];
 
     public function __construct()
     {
         $this->components = collect();
-        $this->extensions = collect();
     }
 
     public function register(string $name, string $component, array $config = []): void
@@ -80,54 +77,4 @@ class ReactComponentRegistry implements ReactRegistryInterface
         }
     }
 
-    /**
-     * Add a hook for component processing
-     */
-    public function addHook(string $event, callable $callback, int $priority = 10): void
-    {
-        if (!isset($this->hooks[$event])) {
-            $this->hooks[$event] = collect();
-        }
-
-        $this->hooks[$event]->push([
-            'callback' => $callback,
-            'priority' => $priority,
-        ]);
-
-        // Sort by priority
-        $this->hooks[$event] = $this->hooks[$event]->sortBy('priority');
-    }
-
-    /**
-     * Execute hooks for an event
-     */
-    public function executeHooks(string $event, mixed $data = null): mixed
-    {
-        if (!isset($this->hooks[$event])) {
-            return $data;
-        }
-
-        foreach ($this->hooks[$event] as $hook) {
-            $data = call_user_func($hook['callback'], $data);
-        }
-
-        return $data;
-    }
-
-    /**
-     * Register a component extension
-     */
-    public function registerExtension(string $name, array $config): void
-    {
-        $this->extensions->put($name, $config);
-        Event::dispatch('react-wrapper.extension.registered', [$name, $config]);
-    }
-
-    /**
-     * Get all extensions
-     */
-    public function getExtensions(): Collection
-    {
-        return $this->extensions;
-    }
 }

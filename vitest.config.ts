@@ -19,8 +19,6 @@ export default defineConfig({
         'resources/js/components/UniversalReactRenderer.tsx',
         'resources/js/components/adapters/FilamentReactAdapter.tsx',
         'resources/js/services/DevTools.ts',
-        'resources/js/services/CodeSplittingService.ts',
-        'resources/js/services/ComponentVersioningService.ts',
         'resources/js/utils/globals.ts',
       ],
       thresholds: {
