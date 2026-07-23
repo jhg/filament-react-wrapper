@@ -103,8 +103,6 @@ The unused PHP extension layer was also removed. Replace
 `ExtensionManager`, `BaseReactExtension`, and `CacheExtension` with application
 services or normal Laravel bootstrapping.
 
-The following JavaScript services are no longer exported:
-
 Remove imports such as:
 
 ```diff
