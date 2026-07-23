@@ -30,6 +30,18 @@ export const runtimeCanInitialize =
     ? true
     : existingRuntime.mode === runtimeMode;
 
+const getReactMajor = (version: string): number | undefined => {
+  const major = Number.parseInt(version.split('.')[0] ?? '', 10);
+  return Number.isFinite(major) ? major : undefined;
+};
+
+const hasDifferentReactMajor =
+  runtimeCanInitialize &&
+  existingRuntime &&
+  existingRuntime.mode === runtimeMode &&
+  getReactMajor(existingRuntime.reactVersion) !== undefined &&
+  getReactMajor(existingRuntime.reactVersion) !== getReactMajor(reactVersion);
+
 if (typeof window !== 'undefined') {
   if (!existingRuntime) {
     (window as unknown as Record<string, ReactWrapperRuntimeInfo>)[runtimeMarker] = runtimeInfo;
@@ -37,6 +49,12 @@ if (typeof window !== 'undefined') {
     console.error(
       `[Filament React Wrapper] Refusing to initialize a ${runtimeMode} runtime because a ${existingRuntime.mode} runtime is already active. ` +
         'Load only one runtime mode per page; use REACT_WRAPPER_ASSET_MODE=vite for application-owned React components.'
+    );
+  } else if (hasDifferentReactMajor) {
+    console.warn(
+      `[Filament React Wrapper] Multiple ${runtimeMode} runtimes use different React major versions ` +
+        `(${existingRuntime.reactVersion} and ${reactVersion}). Keep one application React major per page ` +
+        'unless the islands are intentionally isolated.'
     );
   }
 }
