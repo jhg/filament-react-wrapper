@@ -65,6 +65,7 @@ class ReactWrapperMiddleware
         // Only inject if we have components to render and haven't already injected
         return $this->registry->count() > 0 && 
                str_contains($content, '<html') &&
+               str_contains($content, '</head>') &&
                !str_contains($content, 'react-wrapper-bootstrap') &&
                !str_contains($content, 'React Wrapper Assets'); // Prevent duplicate injection with FilamentIntegration
     }
