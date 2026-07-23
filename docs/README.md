@@ -1,10 +1,14 @@
 # Documentation
 
-Use the guides in this order if you are new to the package:
+## New installations
 
 1. [README installation and quick start](../README.md)
 2. [Component registry](component-registry.md)
 3. [Filament fields and widgets](../README.md#filament-fields-and-widgets)
+
+## Upgrading from 3.x
+
+Start with the [4.0 migration guide](migration-4.md).
 
 Reference and feature guides:
 

@@ -5,20 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [4.0.0] - Unreleased
 
 ### Breaking changes
 
 - `ReactField` now exposes the controlled React contract through `value` and
   `onChange`. The former `initialData` field prop has been removed; update
   custom field components to read `value` and call `onChange(nextValue)`.
-- React field changes are now always synchronized to Livewire's client state
-  with deferred `$set(..., false)` semantics. `->reactive()` / `->live()` opt
-  into debounced server commits (300 ms by default); use `->debounce(500)` to
-  customize the live commit delay.
-- Removed the unused `codeSplittingService`, `componentVersioningService`, and
-  PHP extension-manager APIs. Use `registerLazyComponent()` with normal React
-  lazy loading, and keep component version policy in the application.
+- React fields are now deferred by default. Every change updates Livewire's
+  client-side state without sending a request. Use `->reactive()` / `->live()`
+  to enable debounced server commits (300 ms by default); use
+  `->debounce(500)` to customize the delay.
+- Removed the unused `codeSplittingService` and `componentVersioningService`.
+  Use `registerLazyComponent()` with normal React lazy loading, and keep
+  component version policy in the application.
+- Removed the legacy `StateManager` / `StateManagerService` APIs, including
+  `StateManagerProvider`, `useStatePath`, and `useGlobalStatePath`. Use normal
+  React state for local UI state, or `EnhancedStateProvider` and
+  `useFilamentState` for state shared between React components.
+- Removed the PHP extension framework and registry hook/extension methods:
+  `ExtensionManager`, `BaseReactExtension`, `CacheExtension`,
+  `ReactExtensionInterface`, `addHook()`, `executeHooks()`,
+  `registerExtension()`, and `getExtensions()`.
+
+### Migration
+
+See [the 4.0 migration guide](docs/migration-4.md) for step-by-step
+replacements and an upgrade checklist covering the controlled field contract,
+deferred/reactive semantics, state management, and removed services.
 
 ## [3.1.1] - 2025-07-05
 

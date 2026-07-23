@@ -56,6 +56,9 @@ default: every edit updates Livewire's client state without a request, so the
 next submit cannot lose the value. Add `->reactive()` or `->live()` for a
 debounced server commit, and `->debounce(500)` to choose the delay.
 
+Upgrading from 3.x? Read the [4.0 migration guide](docs/migration-4.md) before
+changing your Composer constraint or application components.
+
 ## Installation
 
 ```bash
